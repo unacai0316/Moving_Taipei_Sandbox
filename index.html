@@ -1,48 +1,73 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Moving Taipei Sandbox</title>
-  
-  <!-- p5.js library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
-  
-  <!-- Custom styles -->
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <title>Taipei Sandbox</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            background: #222; 
+            color: white;
+            font-family: Arial;
+        }
+        #ui {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+        .btn {
+            padding: 10px 20px;
+            background: #f4d35e;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn:hover { background: #ee964b; }
+        .btn.active { background: #33658a; color: white; }
+        
+        #controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+        
+        #status {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+    </style>
 </head>
 <body>
-  <div id="canvas-container">
-    <!-- Canvas frame outline -->
-    <div id="canvas-frame"></div>
+    <div id="status">準備開始...</div>
     
-    <!-- Tool selection controls -->
     <div id="controls">
-      <button class="tool-btn" data-type="vendor">🏪 Vendor</button>
-      <button class="tool-btn" data-type="scooter">🛵 Scooter</button>
-      <button class="tool-btn" data-type="rain">☂️ Rain Cover</button>
-      <button class="tool-btn" data-type="balcony">🏠 Balcony Extensions</button>
+        <button class="btn" onclick="randomBG()">🗺️ New Background</button>
+        <button class="btn" onclick="clearAll()">🗑️ Clear</button>
+        <button class="btn" onclick="saveImage()">💾 Save</button>
     </div>
     
-    <!-- Action buttons -->
-    <div id="actions">
-      <button class="action-btn" id="randomize-btn">🗺️ Randomize Your Map</button>
-      <button class="action-btn" id="clear-btn">🗑️ Clear the Sandbox</button>
-      <button class="action-btn" id="save-btn">💾 Save Your Sandbox!</button>
+    <div id="ui">
+        <button class="btn" onclick="selectTool('vendor')">🏪 Vendor</button>
+        <button class="btn" onclick="selectTool('scooter')">🛵 Scooter</button>
+        <button class="btn" onclick="selectTool('rain')">☂️ Rain</button>
+        <button class="btn" onclick="selectTool('balcony')">🏠 Balcony</button>
     </div>
     
-    <!-- Object control panel (hidden by default) -->
-    <div id="object-controls">
-      <button class="control-btn" id="angle-btn">📐 Angle</button>
-      <button class="control-btn" id="rotate-btn">🔄 Rotate</button>
-      <button class="control-btn" id="scale-btn">🔍 Scale</button>
-    </div>
-    
-    <!-- Status display -->
-    <div id="status">Click a tool to start creating your Taipei collage!</div>
-  </div>
-
-  <!-- Game script -->
-  <script src="sketch.js"></script>
+    <script src="game.js"></script>
 </body>
 </html>
