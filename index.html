@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moving Taipei Sandbox</title>
+  
+  <!-- p5.js library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+  
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="canvas-container">
+    <!-- Canvas frame outline -->
+    <div id="canvas-frame"></div>
+    
+    <!-- Tool selection controls -->
+    <div id="controls">
+      <button class="tool-btn" data-type="vendor">🏪 Vendor</button>
+      <button class="tool-btn" data-type="scooter">🛵 Scooter</button>
+      <button class="tool-btn" data-type="rain">☂️ Rain Cover</button>
+      <button class="tool-btn" data-type="balcony">🏠 Balcony Extensions</button>
+    </div>
+    
+    <!-- Action buttons -->
+    <div id="actions">
+      <button class="action-btn" id="randomize-btn">🗺️ Randomize Your Map</button>
+      <button class="action-btn" id="clear-btn">🗑️ Clear the Sandbox</button>
+      <button class="action-btn" id="save-btn">💾 Save Your Sandbox!</button>
+    </div>
+    
+    <!-- Object control panel (hidden by default) -->
+    <div id="object-controls">
+      <button class="control-btn" id="angle-btn">📐 Angle</button>
+      <button class="control-btn" id="rotate-btn">🔄 Rotate</button>
+      <button class="control-btn" id="scale-btn">🔍 Scale</button>
+    </div>
+    
+    <!-- Status display -->
+    <div id="status">Click a tool to start creating your Taipei collage!</div>
+  </div>
+
+  <!-- Game script -->
+  <script src="sketch.js"></script>
+</body>
+</html>
