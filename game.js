@@ -1,64 +1,103 @@
-// 超簡單台北拼貼遊戲
+// Taipei Collage Game - Full Version with Asset Loading
 
+// === Global Variables ===
 let objects = [];
 let currentTool = null;
 let following = null;
 let selectedObject = null;
 let dragging = false;
 let bgImage = null;
+let assetImages = {}; // Store loaded images
 
-// 每個類別的變化
-const objectVariations = {
-    vendor: [
-        { shape: 'rect', size: [60, 40], color: '#f4d35e' },
-        { shape: 'roundRect', size: [55, 45], color: '#ee964b' },
-        { shape: 'hexagon', size: [50, 50], color: '#f95738' },
-        { shape: 'compound1', size: [65, 35], color: '#33658a' },
-        { shape: 'compound2', size: [70, 30], color: '#2f4858' }
-    ],
-    scooter: [
-        { shape: 'ellipse', size: [60, 30], color: '#ee964b' },
-        { shape: 'rounded', size: [55, 25], color: '#f4d35e' },
-        { shape: 'long', size: [70, 20], color: '#33658a' },
-        { shape: 'wide', size: [50, 35], color: '#2f4858' },
-        { shape: 'sport', size: [65, 28], color: '#f95738' }
-    ],
-    rain: [
-        { shape: 'triangle', size: [60, 45], color: '#2f4858' },
-        { shape: 'arc', size: [70, 40], color: '#33658a' },
-        { shape: 'wave', size: [65, 35], color: '#4a90e2' },
-        { shape: 'multi', size: [75, 50], color: '#1a2a3a' },
-        { shape: 'curved', size: [55, 38], color: '#5a6a7a' }
-    ],
-    balcony: [
-        { shape: 'rect', size: [50, 30], color: '#33658a' },
-        { shape: 'extended', size: [60, 25], color: '#2f4858' },
-        { shape: 'windowed', size: [55, 35], color: '#f4d35e' },
-        { shape: 'modern', size: [65, 28], color: '#ee964b' },
-        { shape: 'classic', size: [45, 32], color: '#4a90e2' }
-    ]
+// === Asset Configuration ===
+const assetConfig = {
+    vendor: {
+        count: 2,
+        angles: ['L', 'front', 'R'],
+        path: 'assets/vendor/'
+    },
+    balcony: {
+        count: 1,
+        angles: ['L', 'front', 'R'],
+        path: 'assets/balcony/'
+    },
+    rain: {
+        count: 2,
+        angles: ['L', 'front', 'R'],
+        path: 'assets/rain/'
+    },
+    scooter: {
+        count: 0, // No assets for now
+        angles: ['L', 'front', 'R'],
+        path: 'assets/scooter/'
+    }
 };
 
-// 街景位置
-const taipeiLocations = [
-    { lat: 25.0330, lng: 121.5654 },
-    { lat: 25.0417, lng: 121.5431 },
-    { lat: 25.0478, lng: 121.5170 },
-    { lat: 25.0320, lng: 121.5439 },
-    { lat: 25.0335, lng: 121.5650 }
-];
-
-function setup() {
-    createCanvas(windowWidth, windowHeight);
-    console.log('遊戲啟動！');
-    loadRandomBackground();
-    updateStatus('點擊工具開始創作！');
+// === P5.JS PRELOAD - Load Assets ===
+function preload() {
+    console.log('🚀 Starting to load assets...');
+    
+    for (let [type, config] of Object.entries(assetConfig)) {
+        if (config.count === 0) {
+            console.log(`⏭️ Skipping ${type} (no assets)`);
+            continue;
+        }
+        
+        assetImages[type] = {};
+        console.log(`📂 Loading ${type} type, total ${config.count} styles`);
+        
+        for (let i = 1; i <= config.count; i++) {
+            let styleNum = String(i).padStart(2, '0');
+            assetImages[type][styleNum] = {};
+            
+            for (let angle of config.angles) {
+                let filename = `${type}-${styleNum}-${angle}.png`;
+                let filepath = config.path + filename;
+                
+                console.log(`🔍 Loading: ${filepath}`);
+                
+                assetImages[type][styleNum][angle] = loadImage(
+                    filepath,
+                    (img) => console.log(`✅ Success: ${filepath} (${img.width}x${img.height})`),
+                    (error) => console.error(`❌ Failed: ${filepath}`)
+                );
+            }
+        }
+    }
 }
 
+// === P5.JS SETUP ===
+function setup() {
+    createCanvas(windowWidth, windowHeight);
+    console.log('🎮 New version asset system activated!');
+    
+    // Check asset loading
+    setTimeout(() => {
+        console.log('🖼️ Checking asset status:');
+        for (let [type, config] of Object.entries(assetConfig)) {
+            if (config.count > 0 && assetImages[type]) {
+                for (let [styleNum, angles] of Object.entries(assetImages[type])) {
+                    for (let [angle, img] of Object.entries(angles)) {
+                        if (img && img.width > 0) {
+                            console.log(`✅ ${type}-${styleNum}-${angle}: ${img.width}x${img.height}`);
+                        } else {
+                            console.log(`❌ ${type}-${styleNum}-${angle}: Not loaded`);
+                        }
+                    }
+                }
+            }
+        }
+    }, 2000);
+    
+    loadRandomBackground();
+    updateStatus('New version loaded! Click tools to test!');
+}
+
+// === P5.JS DRAW ===
 function draw() {
     background(30);
     
-    // 畫背景圖片
+    // Draw background
     if (bgImage) {
         let frameX = width * 0.1;
         let frameY = height * 0.15;
@@ -66,54 +105,58 @@ function draw() {
         let frameH = height * 0.7;
         image(bgImage, frameX, frameY, frameW, frameH);
     } else {
-        drawBackground();
+        drawFallbackBackground();
     }
     
-    // 畫所有物件
-    for (let i = 0; i < objects.length; i++) {
-        drawObject(objects[i], i);
+    // Draw objects
+    for (let obj of objects) {
+        drawObject(obj);
     }
     
-    // 畫跟隨物件
+    // Draw following object
     if (following) {
         drawFollowing();
     }
     
-    // 畫框架
+    // Draw frame
     drawFrame();
     
-    // 畫物件控制按鈕
+    // Draw control panel
     if (selectedObject && !dragging) {
         drawObjectControls();
     }
 }
 
+// === Background Related ===
 function loadRandomBackground() {
-    // 使用 Unsplash 隨機街景圖片
-    let keywords = ['taipei+street', 'asian+street', 'urban+street', 'city+street', 'taiwan+street'];
-    let keyword = keywords[Math.floor(Math.random() * keywords.length)];
-    let imageUrl = `https://source.unsplash.com/1200x800/?${keyword}&sig=${Math.random()}`;
+    let imageUrls = [
+        'https://picsum.photos/1200/800?random=1',
+        'https://picsum.photos/1200/800?random=2',
+        'https://picsum.photos/1200/800?random=3',
+        'https://picsum.photos/1200/800?random=4',
+        'https://picsum.photos/1200/800?random=5'
+    ];
+    
+    let imageUrl = imageUrls[Math.floor(Math.random() * imageUrls.length)];
     
     loadImage(imageUrl, 
         (img) => {
             bgImage = img;
             bgImage.filter(GRAY);
-            console.log('背景載入成功');
+            console.log('🖼️ Background loaded successfully');
         },
         () => {
-            console.log('背景載入失敗，使用預設背景');
+            console.log('❌ Background loading failed');
             bgImage = null;
         }
     );
 }
 
-function drawBackground() {
-    // 預設背景
+function drawFallbackBackground() {
     fill(80);
     noStroke();
     rect(width * 0.1, height * 0.15, width * 0.8, height * 0.7);
     
-    // 建築
     fill(60);
     for (let i = 0; i < 4; i++) {
         let x = width * 0.1 + i * (width * 0.2);
@@ -121,7 +164,6 @@ function drawBackground() {
         rect(x, height * 0.4, width * 0.2, h);
     }
     
-    // 街道
     fill(40);
     rect(width * 0.1, height * 0.7, width * 0.8, height * 0.15);
 }
@@ -133,259 +175,218 @@ function drawFrame() {
     rect(width * 0.1, height * 0.15, width * 0.8, height * 0.7);
 }
 
-function drawObject(obj, index) {
+// === Object Drawing ===
+function drawObject(obj) {
     push();
     translate(obj.x, obj.y);
-    rotate(radians(obj.angle + obj.rotation));
+    rotate(radians(obj.rotation));
     scale(obj.scale);
     
-    // 選中高亮
+    // Highlight selected
     if (selectedObject === obj) {
         stroke(255, 255, 0);
         strokeWeight(4);
         noFill();
-        ellipse(0, 0, 80);
+        ellipse(0, 0, 120);
     }
     
-    fill(obj.color);
-    stroke(255);
-    strokeWeight(2);
+    // Draw object
+    if (obj.hasAsset && obj.currentImage && obj.currentImage.width > 0) {
+        // Use real asset
+        imageMode(CENTER);
+        let scale = 0.3; // Adjust image size
+        image(obj.currentImage, 0, 0, obj.currentImage.width * scale, obj.currentImage.height * scale);
+        console.log(`🎨 Drawing asset: ${obj.type} (${obj.currentImage.width}x${obj.currentImage.height})`);
+    } else {
+        // Use geometric shape
+        drawGeometricShape(obj);
+    }
     
-    drawObjectShape(obj);
     pop();
 }
 
-function drawObjectShape(obj) {
-    let variation = obj.variation;
-    let [w, h] = variation.size;
+function drawGeometricShape(obj) {
+    fill(obj.color || '#ee964b');
+    stroke(255);
+    strokeWeight(2);
     
     switch (obj.type) {
         case 'vendor':
-            switch (variation.shape) {
-                case 'rect':
-                    rect(-w/2, -h/2, w, h);
-                    break;
-                case 'roundRect':
-                    rect(-w/2, -h/2, w, h, 10);
-                    break;
-                case 'hexagon':
-                    drawHexagon(w/2);
-                    break;
-                case 'compound1':
-                    rect(-w/2, -h/2, w, h);
-                    rect(-w/3, -h/3, w/3, h/3);
-                    break;
-                case 'compound2':
-                    rect(-w/2, -h/2, w, h);
-                    triangle(-w/2, -h/2, 0, -h, w/2, -h/2);
-                    break;
-            }
+            rect(-30, -20, 60, 40);
             break;
-            
         case 'scooter':
-            switch (variation.shape) {
-                case 'ellipse':
-                    ellipse(0, 0, w, h);
-                    break;
-                case 'rounded':
-                    rect(-w/2, -h/2, w, h, h/2);
-                    break;
-                case 'long':
-                    ellipse(0, 0, w, h);
-                    ellipse(-w/4, 0, w/3, h/2);
-                    break;
-                case 'wide':
-                    ellipse(0, 0, w, h);
-                    rect(-w/3, -h/4, w/2, h/2);
-                    break;
-                case 'sport':
-                    ellipse(0, 0, w, h);
-                    triangle(-w/3, 0, 0, -h/2, w/3, 0);
-                    break;
-            }
+            ellipse(0, 0, 60, 30);
             break;
-            
         case 'rain':
-            switch (variation.shape) {
-                case 'triangle':
-                    triangle(-w/2, h/2, 0, -h/2, w/2, h/2);
-                    break;
-                case 'arc':
-                    arc(0, 0, w, h, PI, TWO_PI);
-                    break;
-                case 'wave':
-                    drawWave(w, h);
-                    break;
-                case 'multi':
-                    triangle(-w/3, h/2, -w/6, -h/2, 0, h/2);
-                    triangle(0, h/2, w/6, -h/2, w/3, h/2);
-                    break;
-                case 'curved':
-                    arc(0, 0, w, h, PI * 0.8, PI * 1.2);
-                    break;
-            }
+            triangle(-30, 15, 0, -30, 30, 15);
             break;
-            
         case 'balcony':
-            switch (variation.shape) {
-                case 'rect':
-                    rect(-w/2, -h/2, w, h);
-                    break;
-                case 'extended':
-                    rect(-w/2, -h/2, w, h);
-                    rect(w/3, -h/4, w/4, h/2);
-                    break;
-                case 'windowed':
-                    rect(-w/2, -h/2, w, h);
-                    fill(100);
-                    rect(-w/3, -h/3, w/4, h/3);
-                    rect(w/6, -h/3, w/4, h/3);
-                    break;
-                case 'modern':
-                    rect(-w/2, -h/2, w, h);
-                    line(-w/2, 0, w/2, 0);
-                    break;
-                case 'classic':
-                    rect(-w/2, -h/2, w, h);
-                    for (let i = -w/3; i < w/3; i += w/8) {
-                        line(i, -h/2, i, -h/4);
-                    }
-                    break;
-            }
+            rect(-25, -15, 50, 30);
             break;
     }
-}
-
-function drawHexagon(radius) {
-    beginShape();
-    for (let i = 0; i < 6; i++) {
-        let angle = TWO_PI / 6 * i;
-        let x = cos(angle) * radius;
-        let y = sin(angle) * radius;
-        vertex(x, y);
-    }
-    endShape(CLOSE);
-}
-
-function drawWave(w, h) {
-    beginShape();
-    for (let x = -w/2; x <= w/2; x += 5) {
-        let y = sin(x * 0.1) * h/4 - h/4;
-        vertex(x, y);
-    }
-    vertex(w/2, h/2);
-    vertex(-w/2, h/2);
-    endShape(CLOSE);
 }
 
 function drawFollowing() {
     push();
     translate(mouseX, mouseY);
     
+    if (following && assetConfig[following].count > 0 && 
+        assetImages[following] && assetImages[following]['01'] && 
+        assetImages[following]['01']['front'] && 
+        assetImages[following]['01']['front'].width > 0) {
+        
+        // Show asset preview
+        let previewImage = assetImages[following]['01']['front'];
+        tint(255, 200);
+        imageMode(CENTER);
+        let scale = 0.25;
+        image(previewImage, 0, 0, previewImage.width * scale, previewImage.height * scale);
+        noTint();
+    } else {
+        // Geometric shape preview
+        drawGeometricPreview();
+    }
+    
+    pop();
+}
+
+function drawGeometricPreview() {
     fill(255, 255, 0, 150);
     stroke(255);
     strokeWeight(3);
     
-    // 隨機選擇變化
-    let variations = objectVariations[following];
-    let variation = variations[0]; // 預覽第一種
-    let [w, h] = variation.size;
-    
     switch (following) {
         case 'vendor':
-            rect(-w/2, -h/2, w, h);
+            rect(-30, -20, 60, 40);
             break;
         case 'scooter':
-            ellipse(0, 0, w, h);
+            ellipse(0, 0, 60, 30);
             break;
         case 'rain':
-            triangle(-w/2, h/2, 0, -h/2, w/2, h/2);
+            triangle(-30, 15, 0, -30, 30, 15);
             break;
         case 'balcony':
-            rect(-w/2, -h/2, w, h);
+            rect(-25, -15, 50, 30);
             break;
     }
-    pop();
 }
 
+// === Control Panel ===
 function drawObjectControls() {
     let obj = selectedObject;
-    let controlX = obj.x + 40;
-    let controlY = obj.y - 60;
+    let controlX = constrain(obj.x + 60, 10, width - 130);
+    let controlY = constrain(obj.y - 60, 10, height - 90);
     
-    // 背景
+    // Background
     fill(0, 0, 0, 200);
     stroke(255, 215, 0);
     strokeWeight(2);
     rect(controlX, controlY, 120, 80, 5);
     
-    // 按鈕
+    // Buttons
     fill(255, 215, 0);
     noStroke();
     
-    // 角度按鈕
-    rect(controlX + 5, controlY + 5, 30, 20, 3);
-    fill(0);
-    textAlign(CENTER, CENTER);
-    textSize(10);
-    text('Angle', controlX + 20, controlY + 15);
+    if (obj.hasAsset) {
+        rect(controlX + 5, controlY + 5, 30, 20, 3);
+        fill(0);
+        textAlign(CENTER, CENTER);
+        textSize(10);
+        text('Angle', controlX + 20, controlY + 15);
+    }
     
-    // 旋轉按鈕
     fill(255, 215, 0);
     rect(controlX + 40, controlY + 5, 30, 20, 3);
     fill(0);
     text('Rotate', controlX + 55, controlY + 15);
     
-    // 縮放按鈕
     fill(255, 215, 0);
     rect(controlX + 75, controlY + 5, 35, 20, 3);
     fill(0);
     text('Scale', controlX + 92, controlY + 15);
     
-    // 顯示當前值
+    // Status Display
     fill(255);
     textAlign(LEFT, CENTER);
     textSize(8);
-    text(`角度: ${obj.angle}°`, controlX + 5, controlY + 35);
-    text(`旋轉: ${Math.round(obj.rotation)}°`, controlX + 5, controlY + 45);
-    text(`縮放: ${obj.scale.toFixed(1)}x`, controlX + 5, controlY + 55);
+    if (obj.hasAsset) {
+        text(`Angle: ${obj.angleNames[obj.angleIndex]}`, controlX + 5, controlY + 35);
+    }
+    text(`Rotation: ${Math.round(obj.rotation)}°`, controlX + 5, controlY + 45);
+    text(`Scale: ${obj.scale.toFixed(1)}x`, controlX + 5, controlY + 55);
 }
 
+// === Object Creation ===
+function createNewObject(type, x, y) {
+    let config = assetConfig[type];
+    let hasAsset = config.count > 0;
+    
+    let obj = {
+        type: type,
+        x: x,
+        y: y,
+        rotation: 0,
+        scale: 1,
+        hasAsset: hasAsset,
+        angleIndex: 1, // 0: L, 1: front, 2: R
+        angleNames: ['Left 45°', 'Front', 'Right 45°']
+    };
+    
+    if (hasAsset && assetImages[type]) {
+        // Randomly select style and angle
+        let styleNum = String(Math.floor(Math.random() * config.count) + 1).padStart(2, '0');
+        obj.angleIndex = Math.floor(Math.random() * 3);
+        
+        obj.styleNum = styleNum;
+        let angleName = config.angles[obj.angleIndex];
+        
+        if (assetImages[type][styleNum] && assetImages[type][styleNum][angleName]) {
+            obj.currentImage = assetImages[type][styleNum][angleName];
+            console.log(`🎯 Created asset object: ${type}-${styleNum}-${angleName}`);
+        } else {
+            console.log(`❌ Asset not found: ${type}-${styleNum}-${angleName}`);
+            obj.hasAsset = false;
+            obj.color = '#ee964b';
+        }
+    } else {
+        obj.color = '#ee964b';
+    }
+    
+    return obj;
+}
+
+// === Interaction Logic ===
 function selectTool(tool) {
-    console.log('選擇工具:', tool);
+    console.log('🔧 Selected tool:', tool);
     currentTool = tool;
     following = tool;
     selectedObject = null;
     
-    // 更新按鈕樣式
     document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
     event.target.classList.add('active');
     
-    updateStatus(`選擇了 ${tool}，移動鼠標並點擊放置！`);
+    updateStatus(`Selected ${tool}, move and click to place!`);
 }
 
 function mousePressed() {
-    // 檢查是否點擊控制按鈕
     if (selectedObject && !dragging) {
         let obj = selectedObject;
-        let controlX = obj.x + 40;
-        let controlY = obj.y - 60;
+        let controlX = constrain(obj.x + 60, 10, width - 130);
+        let controlY = constrain(obj.y - 60, 10, height - 90);
         
-        // 角度按鈕
-        if (mouseX >= controlX + 5 && mouseX <= controlX + 35 && 
+        // Check button clicks
+        if (obj.hasAsset && mouseX >= controlX + 5 && mouseX <= controlX + 35 && 
             mouseY >= controlY + 5 && mouseY <= controlY + 25) {
             changeAngle(obj);
             return;
         }
         
-        // 旋轉按鈕
         if (mouseX >= controlX + 40 && mouseX <= controlX + 70 && 
             mouseY >= controlY + 5 && mouseY <= controlY + 25) {
             rotateObject(obj);
             return;
         }
         
-        // 縮放按鈕
         if (mouseX >= controlX + 75 && mouseX <= controlX + 110 && 
             mouseY >= controlY + 5 && mouseY <= controlY + 25) {
             scaleObject(obj);
@@ -394,41 +395,28 @@ function mousePressed() {
     }
     
     if (following) {
-        // 放置物件 - 隨機選擇變化
-        let variations = objectVariations[following];
-        let variation = variations[Math.floor(Math.random() * variations.length)];
-        
-        objects.push({
-            type: following,
-            x: mouseX,
-            y: mouseY,
-            color: variation.color,
-            variation: variation,
-            angle: 0,        // 預設角度（-45, 0, 45）
-            rotation: 0,     // 自由旋轉
-            scale: 1,        // 縮放
-            angleIndex: 1    // 角度索引 (0:-45°, 1:0°, 2:45°)
-        });
+        // Place object
+        let newObj = createNewObject(following, mouseX, mouseY);
+        objects.push(newObj);
         
         following = null;
         currentTool = null;
         selectedObject = null;
         
-        // 移除按鈕高亮
         document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
         
-        updateStatus(`物件已放置！目前有 ${objects.length} 個物件`);
-        console.log('放置物件，總數:', objects.length);
+        updateStatus(`Placed object, total: ${objects.length}`);
+        console.log('📍 Placed object, total:', objects.length);
     } else {
-        // 選擇物件
+        // Select object
         selectedObject = null;
         for (let i = objects.length - 1; i >= 0; i--) {
             let obj = objects[i];
             let d = dist(mouseX, mouseY, obj.x, obj.y);
-            if (d < 40) {
+            if (d < 60) {
                 selectedObject = obj;
                 dragging = true;
-                updateStatus(`選中了 ${obj.type}`);
+                updateStatus(`Selected ${obj.type}`);
                 break;
             }
         }
@@ -446,28 +434,38 @@ function mouseReleased() {
     dragging = false;
 }
 
+// === Object Controls ===
 function changeAngle(obj) {
+    if (!obj.hasAsset) return;
+    
     obj.angleIndex = (obj.angleIndex + 1) % 3;
-    obj.angle = [-45, 0, 45][obj.angleIndex];
-    updateStatus(`角度改為: ${obj.angle}°`);
+    let config = assetConfig[obj.type];
+    let angleName = config.angles[obj.angleIndex];
+    
+    if (assetImages[obj.type][obj.styleNum][angleName]) {
+        obj.currentImage = assetImages[obj.type][obj.styleNum][angleName];
+        updateStatus(`Angle: ${obj.angleNames[obj.angleIndex]}`);
+        console.log(`🔄 Changed angle: ${obj.type}-${obj.styleNum}-${angleName}`);
+    }
 }
 
 function rotateObject(obj) {
     obj.rotation += 15;
     if (obj.rotation >= 360) obj.rotation -= 360;
-    updateStatus(`旋轉: ${Math.round(obj.rotation)}°`);
+    updateStatus(`Rotation: ${Math.round(obj.rotation)}°`);
 }
 
 function scaleObject(obj) {
     if (obj.scale === 1) obj.scale = 1.5;
     else if (obj.scale === 1.5) obj.scale = 0.7;
     else obj.scale = 1;
-    updateStatus(`縮放: ${obj.scale.toFixed(1)}x`);
+    updateStatus(`Scale: ${obj.scale.toFixed(1)}x`);
 }
 
+// === Utility Functions ===
 function randomBG() {
     loadRandomBackground();
-    updateStatus('載入新背景中...');
+    updateStatus('Loading new background...');
 }
 
 function clearAll() {
@@ -476,14 +474,12 @@ function clearAll() {
     currentTool = null;
     selectedObject = null;
     document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
-    updateStatus('已清空！');
-    console.log('清空所有物件');
+    updateStatus('Cleared!');
 }
 
 function saveImage() {
     saveCanvas('taipei-collage', 'png');
-    updateStatus('圖片已保存！');
-    console.log('保存圖片');
+    updateStatus('Image saved!');
 }
 
 function updateStatus(msg) {
