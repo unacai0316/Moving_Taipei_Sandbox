@@ -1,13 +1,13 @@
-// Taipei Collage Game - Full Version with Asset Loading
-
 // === Global Variables ===
 let objects = [];
 let currentTool = null;
 let following = null;
 let selectedObject = null;
 let dragging = false;
+let rotating = false;
+let scaling = false;
 let bgImage = null;
-let assetImages = {}; // Store loaded images
+let assetImages = {};
 
 // === Asset Configuration ===
 const assetConfig = {
@@ -27,24 +27,20 @@ const assetConfig = {
         path: 'assets/rain/'
     },
     scooter: {
-        count: 0, // No assets for now
+        count: 0,
         angles: ['L', 'front', 'R'],
         path: 'assets/scooter/'
     }
 };
 
-// === P5.JS PRELOAD - Load Assets ===
+// === P5.JS PRELOAD ===
 function preload() {
-    console.log('🚀 Starting to load assets...');
+    console.log('🚀 Loading assets...');
     
     for (let [type, config] of Object.entries(assetConfig)) {
-        if (config.count === 0) {
-            console.log(`⏭️ Skipping ${type} (no assets)`);
-            continue;
-        }
+        if (config.count === 0) continue;
         
         assetImages[type] = {};
-        console.log(`📂 Loading ${type} type, total ${config.count} styles`);
         
         for (let i = 1; i <= config.count; i++) {
             let styleNum = String(i).padStart(2, '0');
@@ -54,12 +50,10 @@ function preload() {
                 let filename = `${type}-${styleNum}-${angle}.png`;
                 let filepath = config.path + filename;
                 
-                console.log(`🔍 Loading: ${filepath}`);
-                
                 assetImages[type][styleNum][angle] = loadImage(
                     filepath,
-                    (img) => console.log(`✅ Success: ${filepath} (${img.width}x${img.height})`),
-                    (error) => console.error(`❌ Failed: ${filepath}`)
+                    (img) => console.log(`✅ Loaded: ${filepath}`),
+                    (error) => console.warn(`⚠️ Failed: ${filepath}`)
                 );
             }
         }
@@ -68,42 +62,29 @@ function preload() {
 
 // === P5.JS SETUP ===
 function setup() {
-    createCanvas(windowWidth, windowHeight);
-    console.log('🎮 New version asset system activated!');
-    
-    // Check asset loading
-    setTimeout(() => {
-        console.log('🖼️ Checking asset status:');
-        for (let [type, config] of Object.entries(assetConfig)) {
-            if (config.count > 0 && assetImages[type]) {
-                for (let [styleNum, angles] of Object.entries(assetImages[type])) {
-                    for (let [angle, img] of Object.entries(angles)) {
-                        if (img && img.width > 0) {
-                            console.log(`✅ ${type}-${styleNum}-${angle}: ${img.width}x${img.height}`);
-                        } else {
-                            console.log(`❌ ${type}-${styleNum}-${angle}: Not loaded`);
-                        }
-                    }
-                }
-            }
-        }
-    }, 2000);
+    let canvas = createCanvas(windowWidth, windowHeight);
+    canvas.parent(document.body);
     
     loadRandomBackground();
-    updateStatus('New version loaded! Click tools to test!');
+    updateStatus('Ready! Select a tool and click to place objects');
 }
 
 // === P5.JS DRAW ===
 function draw() {
-    background(30);
+    background(25, 28, 35);
     
     // Draw background
     if (bgImage) {
         let frameX = width * 0.1;
-        let frameY = height * 0.15;
+        let frameY = height * 0.12;
         let frameW = width * 0.8;
-        let frameH = height * 0.7;
+        let frameH = height * 0.75;
+        
+        push();
+        tint(255, 180);
         image(bgImage, frameX, frameY, frameW, frameH);
+        noTint();
+        pop();
     } else {
         drawFallbackBackground();
     }
@@ -121,20 +102,18 @@ function draw() {
     // Draw frame
     drawFrame();
     
-    // Draw control panel
-    if (selectedObject && !dragging) {
-        drawObjectControls();
+    // Draw object controls
+    if (selectedObject && !dragging && !rotating) {
+        drawFloatingControls();
     }
 }
 
-// === Background Related ===
+// === Background Functions ===
 function loadRandomBackground() {
     let imageUrls = [
-        'https://picsum.photos/1200/800?random=1',
-        'https://picsum.photos/1200/800?random=2',
-        'https://picsum.photos/1200/800?random=3',
-        'https://picsum.photos/1200/800?random=4',
-        'https://picsum.photos/1200/800?random=5'
+        'https://picsum.photos/1200/800?random=' + Math.floor(Math.random() * 50),
+        'https://picsum.photos/1200/800?random=' + Math.floor(Math.random() * 50 + 50),
+        'https://picsum.photos/1200/800?random=' + Math.floor(Math.random() * 50 + 100)
     ];
     
     let imageUrl = imageUrls[Math.floor(Math.random() * imageUrls.length)];
@@ -143,36 +122,61 @@ function loadRandomBackground() {
         (img) => {
             bgImage = img;
             bgImage.filter(GRAY);
-            console.log('🖼️ Background loaded successfully');
+            updateStatus('New street scene loaded');
         },
         () => {
-            console.log('❌ Background loading failed');
             bgImage = null;
+            updateStatus('Using fallback background');
         }
     );
 }
 
 function drawFallbackBackground() {
-    fill(80);
-    noStroke();
-    rect(width * 0.1, height * 0.15, width * 0.8, height * 0.7);
-    
-    fill(60);
-    for (let i = 0; i < 4; i++) {
-        let x = width * 0.1 + i * (width * 0.2);
-        let h = 50 + i * 30;
-        rect(x, height * 0.4, width * 0.2, h);
+    // Gradient background
+    for (let i = 0; i <= height * 0.75; i++) {
+        let alpha = map(i, 0, height * 0.75, 80, 40);
+        stroke(alpha);
+        line(width * 0.1, height * 0.12 + i, width * 0.9, height * 0.12 + i);
     }
     
-    fill(40);
-    rect(width * 0.1, height * 0.7, width * 0.8, height * 0.15);
+    // Urban silhouettes
+    fill(60, 65, 75);
+    noStroke();
+    for (let i = 0; i < 6; i++) {
+        let x = width * 0.1 + i * (width * 0.13);
+        let h = 40 + Math.sin(i) * 60;
+        rect(x, height * 0.6, width * 0.12, h);
+    }
 }
 
 function drawFrame() {
-    stroke(255, 215, 0);
-    strokeWeight(3);
+    stroke(255, 215, 0, 150);
+    strokeWeight(2);
     noFill();
-    rect(width * 0.1, height * 0.15, width * 0.8, height * 0.7);
+    
+    let frameX = width * 0.1;
+    let frameY = height * 0.12;
+    let frameW = width * 0.8;
+    let frameH = height * 0.75;
+    
+    // Corner brackets
+    let cornerSize = 20;
+    
+    // Top-left
+    line(frameX, frameY, frameX + cornerSize, frameY);
+    line(frameX, frameY, frameX, frameY + cornerSize);
+    
+    // Top-right
+    line(frameX + frameW, frameY, frameX + frameW - cornerSize, frameY);
+    line(frameX + frameW, frameY, frameX + frameW, frameY + cornerSize);
+    
+    // Bottom-left
+    line(frameX, frameY + frameH, frameX + cornerSize, frameY + frameH);
+    line(frameX, frameY + frameH, frameX, frameY + frameH - cornerSize);
+    
+    // Bottom-right
+    line(frameX + frameW, frameY + frameH, frameX + frameW - cornerSize, frameY + frameH);
+    line(frameX + frameW, frameY + frameH, frameX + frameW, frameY + frameH - cornerSize);
 }
 
 // === Object Drawing ===
@@ -182,23 +186,33 @@ function drawObject(obj) {
     rotate(radians(obj.rotation));
     scale(obj.scale);
     
-    // Highlight selected
+    // Selection indicator
     if (selectedObject === obj) {
-        stroke(255, 255, 0);
-        strokeWeight(4);
+        stroke(255, 215, 0, 200);
+        strokeWeight(3);
         noFill();
         ellipse(0, 0, 120);
+        
+        // Rotation handle
+        stroke(255, 100, 100, 150);
+        strokeWeight(2);
+        line(0, -60, 0, -80);
+        ellipse(0, -80, 12);
+        
+        // Scale handles
+        stroke(100, 255, 100, 150);
+        ellipse(60, 0, 10);
+        ellipse(-60, 0, 10);
+        ellipse(0, 60, 10);
+        ellipse(0, -60, 10);
     }
     
     // Draw object
     if (obj.hasAsset && obj.currentImage && obj.currentImage.width > 0) {
-        // Use real asset
         imageMode(CENTER);
-        let scale = 0.3; // Adjust image size
+        let scale = 0.4;
         image(obj.currentImage, 0, 0, obj.currentImage.width * scale, obj.currentImage.height * scale);
-        console.log(`🎨 Drawing asset: ${obj.type} (${obj.currentImage.width}x${obj.currentImage.height})`);
     } else {
-        // Use geometric shape
         drawGeometricShape(obj);
     }
     
@@ -206,22 +220,31 @@ function drawObject(obj) {
 }
 
 function drawGeometricShape(obj) {
-    fill(obj.color || '#ee964b');
-    stroke(255);
+    fill(obj.color || '#FFD700');
+    stroke(255, 255, 255, 200);
     strokeWeight(2);
     
     switch (obj.type) {
         case 'vendor':
-            rect(-30, -20, 60, 40);
+            rect(-35, -25, 70, 50, 5);
+            fill(255, 100);
+            rect(-25, -15, 50, 10);
             break;
         case 'scooter':
-            ellipse(0, 0, 60, 30);
+            ellipse(0, 0, 80, 40);
+            fill(255, 100);
+            ellipse(-15, 0, 12);
+            ellipse(15, 0, 12);
             break;
         case 'rain':
-            triangle(-30, 15, 0, -30, 30, 15);
+            triangle(-35, 20, 0, -35, 35, 20);
+            fill(255, 100);
+            triangle(-25, 10, 0, -20, 25, 10);
             break;
         case 'balcony':
-            rect(-25, -15, 50, 30);
+            rect(-30, -20, 60, 40, 3);
+            fill(255, 100);
+            rect(-25, -15, 50, 8);
             break;
     }
 }
@@ -235,85 +258,88 @@ function drawFollowing() {
         assetImages[following]['01']['front'] && 
         assetImages[following]['01']['front'].width > 0) {
         
-        // Show asset preview
         let previewImage = assetImages[following]['01']['front'];
         tint(255, 200);
         imageMode(CENTER);
-        let scale = 0.25;
+        let scale = 0.3;
         image(previewImage, 0, 0, previewImage.width * scale, previewImage.height * scale);
         noTint();
     } else {
-        // Geometric shape preview
+        tint(255, 150);
         drawGeometricPreview();
+        noTint();
     }
     
     pop();
 }
 
 function drawGeometricPreview() {
-    fill(255, 255, 0, 150);
-    stroke(255);
+    fill(255, 215, 0, 150);
+    stroke(255, 200);
     strokeWeight(3);
     
     switch (following) {
         case 'vendor':
-            rect(-30, -20, 60, 40);
+            rect(-35, -25, 70, 50, 5);
             break;
         case 'scooter':
-            ellipse(0, 0, 60, 30);
+            ellipse(0, 0, 80, 40);
             break;
         case 'rain':
-            triangle(-30, 15, 0, -30, 30, 15);
+            triangle(-35, 20, 0, -35, 35, 20);
             break;
         case 'balcony':
-            rect(-25, -15, 50, 30);
+            rect(-30, -20, 60, 40, 3);
             break;
     }
 }
 
-// === Control Panel ===
-function drawObjectControls() {
+// === Floating Controls ===
+function drawFloatingControls() {
     let obj = selectedObject;
-    let controlX = constrain(obj.x + 60, 10, width - 130);
-    let controlY = constrain(obj.y - 60, 10, height - 90);
+    let spacing = 50;
+    let controlY = obj.y - 100;
+    let startX = obj.x - spacing;
     
-    // Background
-    fill(0, 0, 0, 200);
-    stroke(255, 215, 0);
-    strokeWeight(2);
-    rect(controlX, controlY, 120, 80, 5);
+    // Constrain to screen
+    controlY = constrain(controlY, 30, height - 30);
+    startX = constrain(startX, spacing, width - spacing * 2);
     
-    // Buttons
-    fill(255, 215, 0);
-    noStroke();
-    
+    // Angle control (if has asset)
     if (obj.hasAsset) {
-        rect(controlX + 5, controlY + 5, 30, 20, 3);
-        fill(0);
-        textAlign(CENTER, CENTER);
-        textSize(10);
-        text('Angle', controlX + 20, controlY + 15);
+        drawFloatingButton(startX - spacing, controlY, '↻', 'Change Angle');
+        startX += spacing;
     }
     
-    fill(255, 215, 0);
-    rect(controlX + 40, controlY + 5, 30, 20, 3);
-    fill(0);
-    text('Rotate', controlX + 55, controlY + 15);
+    // Flip control
+    drawFloatingButton(startX, controlY, '⟷', 'Flip');
     
-    fill(255, 215, 0);
-    rect(controlX + 75, controlY + 5, 35, 20, 3);
-    fill(0);
-    text('Scale', controlX + 92, controlY + 15);
+    // Layer control
+    drawFloatingButton(startX + spacing, controlY, '↕', 'Layer');
+}
+
+function drawFloatingButton(x, y, icon, tooltip) {
+    // Button background
+    fill(255, 255, 255, 230);
+    stroke(100, 100, 100, 150);
+    strokeWeight(1);
+    ellipse(x, y, 40);
     
-    // Status Display
-    fill(255);
-    textAlign(LEFT, CENTER);
-    textSize(8);
-    if (obj.hasAsset) {
-        text(`Angle: ${obj.angleNames[obj.angleIndex]}`, controlX + 5, controlY + 35);
+    // Icon
+    fill(50, 50, 50);
+    textAlign(CENTER, CENTER);
+    textSize(18);
+    textFont('Arial');
+    text(icon, x, y);
+    
+    // Hover effect
+    let d = dist(mouseX, mouseY, x, y);
+    if (d < 20) {
+        stroke(255, 215, 0);
+        strokeWeight(2);
+        noFill();
+        ellipse(x, y, 44);
     }
-    text(`Rotation: ${Math.round(obj.rotation)}°`, controlX + 5, controlY + 45);
-    text(`Scale: ${obj.scale.toFixed(1)}x`, controlX + 5, controlY + 55);
 }
 
 // === Object Creation ===
@@ -328,28 +354,24 @@ function createNewObject(type, x, y) {
         rotation: 0,
         scale: 1,
         hasAsset: hasAsset,
-        angleIndex: 1, // 0: L, 1: front, 2: R
-        angleNames: ['Left 45°', 'Front', 'Right 45°']
+        angleIndex: 1,
+        flipped: false,
+        zIndex: objects.length
     };
     
     if (hasAsset && assetImages[type]) {
-        // Randomly select style and angle
         let styleNum = String(Math.floor(Math.random() * config.count) + 1).padStart(2, '0');
-        obj.angleIndex = Math.floor(Math.random() * 3);
-        
         obj.styleNum = styleNum;
         let angleName = config.angles[obj.angleIndex];
         
         if (assetImages[type][styleNum] && assetImages[type][styleNum][angleName]) {
             obj.currentImage = assetImages[type][styleNum][angleName];
-            console.log(`🎯 Created asset object: ${type}-${styleNum}-${angleName}`);
         } else {
-            console.log(`❌ Asset not found: ${type}-${styleNum}-${angleName}`);
             obj.hasAsset = false;
-            obj.color = '#ee964b';
+            obj.color = '#FFD700';
         }
     } else {
-        obj.color = '#ee964b';
+        obj.color = '#FFD700';
     }
     
     return obj;
@@ -357,39 +379,40 @@ function createNewObject(type, x, y) {
 
 // === Interaction Logic ===
 function selectTool(tool) {
-    console.log('🔧 Selected tool:', tool);
     currentTool = tool;
     following = tool;
     selectedObject = null;
     
-    document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.closest('.tool-btn').classList.add('active');
     
-    updateStatus(`Selected ${tool}, move and click to place!`);
+    updateStatus(`Selected ${tool} tool - click to place objects`);
 }
 
 function mousePressed() {
+    // Check floating controls first
     if (selectedObject && !dragging) {
         let obj = selectedObject;
-        let controlX = constrain(obj.x + 60, 10, width - 130);
-        let controlY = constrain(obj.y - 60, 10, height - 90);
+        let spacing = 50;
+        let controlY = constrain(obj.y - 100, 30, height - 30);
+        let startX = constrain(obj.x - spacing, spacing, width - spacing * 2);
         
         // Check button clicks
-        if (obj.hasAsset && mouseX >= controlX + 5 && mouseX <= controlX + 35 && 
-            mouseY >= controlY + 5 && mouseY <= controlY + 25) {
-            changeAngle(obj);
+        if (obj.hasAsset) {
+            if (dist(mouseX, mouseY, startX - spacing, controlY) < 20) {
+                changeAngle(obj);
+                return;
+            }
+            startX += spacing;
+        }
+        
+        if (dist(mouseX, mouseY, startX, controlY) < 20) {
+            flipObject(obj);
             return;
         }
         
-        if (mouseX >= controlX + 40 && mouseX <= controlX + 70 && 
-            mouseY >= controlY + 5 && mouseY <= controlY + 25) {
-            rotateObject(obj);
-            return;
-        }
-        
-        if (mouseX >= controlX + 75 && mouseX <= controlX + 110 && 
-            mouseY >= controlY + 5 && mouseY <= controlY + 25) {
-            scaleObject(obj);
+        if (dist(mouseX, mouseY, startX + spacing, controlY) < 20) {
+            changeLayer(obj);
             return;
         }
     }
@@ -401,12 +424,10 @@ function mousePressed() {
         
         following = null;
         currentTool = null;
-        selectedObject = null;
+        selectedObject = newObj;
         
-        document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
-        
-        updateStatus(`Placed object, total: ${objects.length}`);
-        console.log('📍 Placed object, total:', objects.length);
+        document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+        updateStatus(`Placed ${newObj.type} - drag to move, scroll to scale`);
     } else {
         // Select object
         selectedObject = null;
@@ -415,8 +436,9 @@ function mousePressed() {
             let d = dist(mouseX, mouseY, obj.x, obj.y);
             if (d < 60) {
                 selectedObject = obj;
-                dragging = true;
-                updateStatus(`Selected ${obj.type}`);
+                dragging = !keyIsDown(SHIFT);
+                rotating = keyIsDown(SHIFT);
+                updateStatus(`Selected ${obj.type} - ${keyIsDown(SHIFT) ? 'drag to rotate' : 'drag to move'}`);
                 break;
             }
         }
@@ -424,14 +446,49 @@ function mousePressed() {
 }
 
 function mouseDragged() {
-    if (selectedObject && dragging) {
-        selectedObject.x = mouseX;
-        selectedObject.y = mouseY;
+    if (selectedObject) {
+        if (dragging) {
+            selectedObject.x = mouseX;
+            selectedObject.y = mouseY;
+        } else if (rotating) {
+            let angle = atan2(mouseY - selectedObject.y, mouseX - selectedObject.x);
+            selectedObject.rotation = degrees(angle);
+        }
     }
 }
 
 function mouseReleased() {
     dragging = false;
+    rotating = false;
+}
+
+function mouseWheel(event) {
+    if (selectedObject) {
+        let scaleChange = -event.delta * 0.001;
+        selectedObject.scale += scaleChange;
+        selectedObject.scale = constrain(selectedObject.scale, 0.2, 3.0);
+        updateStatus(`Scale: ${selectedObject.scale.toFixed(2)}x`);
+        return false; // Prevent page scroll
+    }
+}
+
+function keyPressed() {
+    if (selectedObject) {
+        if (key === 'r' || key === 'R') {
+            selectedObject.rotation += 15;
+        }
+        if (key === 'f' || key === 'F') {
+            flipObject(selectedObject);
+        }
+        if (keyCode === DELETE || keyCode === BACKSPACE) {
+            let index = objects.indexOf(selectedObject);
+            if (index > -1) {
+                objects.splice(index, 1);
+                selectedObject = null;
+                updateStatus('Object deleted');
+            }
+        }
+    }
 }
 
 // === Object Controls ===
@@ -444,28 +501,29 @@ function changeAngle(obj) {
     
     if (assetImages[obj.type][obj.styleNum][angleName]) {
         obj.currentImage = assetImages[obj.type][obj.styleNum][angleName];
-        updateStatus(`Angle: ${obj.angleNames[obj.angleIndex]}`);
-        console.log(`🔄 Changed angle: ${obj.type}-${obj.styleNum}-${angleName}`);
+        updateStatus(`Changed angle to ${angleName}`);
     }
 }
 
-function rotateObject(obj) {
-    obj.rotation += 15;
-    if (obj.rotation >= 360) obj.rotation -= 360;
-    updateStatus(`Rotation: ${Math.round(obj.rotation)}°`);
+function flipObject(obj) {
+    obj.scale *= -1;
+    updateStatus('Object flipped');
 }
 
-function scaleObject(obj) {
-    if (obj.scale === 1) obj.scale = 1.5;
-    else if (obj.scale === 1.5) obj.scale = 0.7;
-    else obj.scale = 1;
-    updateStatus(`Scale: ${obj.scale.toFixed(1)}x`);
+function changeLayer(obj) {
+    // Move to front
+    let index = objects.indexOf(obj);
+    if (index > -1) {
+        objects.splice(index, 1);
+        objects.push(obj);
+        updateStatus('Moved to front');
+    }
 }
 
 // === Utility Functions ===
 function randomBG() {
     loadRandomBackground();
-    updateStatus('Loading new background...');
+    updateStatus('Loading new street scene...');
 }
 
 function clearAll() {
@@ -473,13 +531,13 @@ function clearAll() {
     following = null;
     currentTool = null;
     selectedObject = null;
-    document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
-    updateStatus('Cleared!');
+    document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+    updateStatus('Canvas cleared - ready for new composition');
 }
 
 function saveImage() {
-    saveCanvas('taipei-collage', 'png');
-    updateStatus('Image saved!');
+    saveCanvas('taipei-street-collage', 'png');
+    updateStatus('Image saved as taipei-street-collage.png');
 }
 
 function updateStatus(msg) {

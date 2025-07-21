@@ -2,72 +2,76 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Taipei Sandbox</title>
+    <title>Moving Taipei: City Style Guide - Sandbox</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
-    <style>
-        body { 
-            margin: 0; 
-            background: #222; 
-            color: white;
-            font-family: Arial;
-        }
-        #ui {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 10px;
-            z-index: 100;
-        }
-        .btn {
-            padding: 10px 20px;
-            background: #f4d35e;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .btn:hover { background: #ee964b; }
-        .btn.active { background: #33658a; color: white; }
-        
-        #controls {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 100;
-        }
-        
-        #status {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.8);
-            padding: 10px;
-            border-radius: 5px;
-            z-index: 100;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <div id="status">ready to start...</div>
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <h1 class="app-title">Moving Taipei</h1>
+            <p class="app-subtitle">City Style Guide - Interactive Sandbox</p>
+        </div>
+    </header>
+
+    <!-- Status Display -->
+    <div id="status" class="status-display">Ready to explore Taipei's street elements...</div>
     
-    <div id="controls">
-        <button class="btn" onclick="randomBG()">🗺️ New Background</button>
-        <button class="btn" onclick="clearAll()">🗑️ Clear</button>
-        <button class="btn" onclick="saveImage()">💾 Save</button>
+    <!-- Control Panels -->
+    <div id="controls" class="control-panel">
+        <button class="control-btn" onclick="randomBG()" title="New Background">
+            <i class="fas fa-map"></i>
+        </button>
+        <button class="control-btn" onclick="clearAll()" title="Clear All">
+            <i class="fas fa-trash"></i>
+        </button>
+        <button class="control-btn" onclick="saveImage()" title="Save Image">
+            <i class="fas fa-download"></i>
+        </button>
     </div>
     
-    <div id="ui">
-        <button class="btn" onclick="selectTool('vendor')">🏪 Vendor</button>
-        <button class="btn" onclick="selectTool('scooter')">🛵 Scooter</button>
-        <button class="btn" onclick="selectTool('rain')">☂️ Rain</button>
-        <button class="btn" onclick="selectTool('balcony')">🏠 Balcony</button>
+    <!-- Tool Selection -->
+    <div id="ui" class="tool-panel">
+        <button class="tool-btn" onclick="selectTool('vendor')" title="Street Vendor">
+            <i class="fas fa-store"></i>
+            <span>Vendor</span>
+        </button>
+        <button class="tool-btn" onclick="selectTool('scooter')" title="Scooter">
+            <i class="fas fa-motorcycle"></i>
+            <span>Scooter</span>
+        </button>
+        <button class="tool-btn" onclick="selectTool('rain')" title="Rain Cover">
+            <i class="fas fa-umbrella"></i>
+            <span>Rain</span>
+        </button>
+        <button class="tool-btn" onclick="selectTool('balcony')" title="Balcony">
+            <i class="fas fa-building"></i>
+            <span>Balcony</span>
+        </button>
     </div>
-    
+
+    <!-- Instructions -->
+    <div class="instructions">
+        <div class="instruction-item">
+            <i class="fas fa-mouse-pointer"></i>
+            <span>Click to place objects</span>
+        </div>
+        <div class="instruction-item">
+            <i class="fas fa-hand-paper"></i>
+            <span>Drag to move</span>
+        </div>
+        <div class="instruction-item">
+            <i class="fas fa-mouse"></i>
+            <span>Scroll to scale</span>
+        </div>
+        <div class="instruction-item">
+            <i class="fas fa-redo"></i>
+            <span>Shift+drag to rotate</span>
+        </div>
+    </div>
+
     <script src="game.js"></script>
 </body>
 </html>
