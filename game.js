@@ -27,7 +27,7 @@ const assetConfig = {
         path: 'assets/rain/'
     },
     scooter: {
-        count: 2,
+        count: 0,
         angles: ['L', 'front', 'R'],
         path: 'assets/scooter/'
     }
