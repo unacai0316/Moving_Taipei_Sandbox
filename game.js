@@ -186,7 +186,6 @@ function drawObject(obj) {
     rotate(radians(obj.rotation));
     scale(obj.scale * (obj.flipped ? -1 : 1), obj.scale); // Apply horizontal flip
     
-    // Selection indicator
     if (selectedObject === obj) {
         stroke(255, 215, 0, 200);
         strokeWeight(3);
