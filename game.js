@@ -184,7 +184,7 @@ function drawObject(obj) {
     push();
     translate(obj.x, obj.y);
     rotate(radians(obj.rotation));
-    scale(obj.scale);
+    scale(obj.scale * (obj.flipped ? -1 : 1), obj.scale); // Apply horizontal flip
     
     // Selection indicator
     if (selectedObject === obj) {
@@ -506,8 +506,8 @@ function changeAngle(obj) {
 }
 
 function flipObject(obj) {
-    obj.scale *= -1;
-    updateStatus('Object flipped');
+    obj.flipped = !obj.flipped;
+    updateStatus(`Object ${obj.flipped ? 'flipped horizontally' : 'restored'}`);
 }
 
 function changeLayer(obj) {
