@@ -9,32 +9,7 @@ let bgImage = null;
 let assetImages = {};
 let currentLocation = null;
 
-// === Street View Locations Database ===
-const streetViewLocations = [
-    { lat: 25.0330, lng: 121.5654, name: "Taipei, Taiwan", description: "Taipei's bustling streets" },
-    { lat: 35.6762, lng: 139.6503, name: "Tokyo, Japan", description: "Tokyo urban landscape" },
-    { lat: 22.3193, lng: 114.1694, name: "Hong Kong", description: "Hong Kong street scene" },
-    { lat: 1.3521, lng: 103.8198, name: "Singapore", description: "Singapore city streets" },
-    { lat: 13.7563, lng: 100.5018, name: "Bangkok, Thailand", description: "Bangkok vibrant streets" },
-    { lat: 10.8231, lng: 106.6297, name: "Ho Chi Minh City, Vietnam", description: "Ho Chi Minh City" },
-    { lat: 14.5995, lng: 120.9842, name: "Manila, Philippines", description: "Manila street view" },
-    { lat: -6.2088, lng: 106.8456, name: "Jakarta, Indonesia", description: "Jakarta urban scene" },
-    { lat: 3.1390, lng: 101.6869, name: "Kuala Lumpur, Malaysia", description: "Kuala Lumpur streets" },
-    { lat: 18.7883, lng: 98.9853, name: "Chiang Mai, Thailand", description: "Chiang Mai old town" },
-    { lat: 37.7749, lng: -122.4194, name: "San Francisco, USA", description: "San Francisco streets" },
-    { lat: 40.7128, lng: -74.0060, name: "New York, USA", description: "New York City" },
-    { lat: 51.5074, lng: -0.1278, name: "London, UK", description: "London street scene" },
-    { lat: 48.8566, lng: 2.3522, name: "Paris, France", description: "Paris urban landscape" },
-    { lat: 52.5200, lng: 13.4050, name: "Berlin, Germany", description: "Berlin street view" },
-    { lat: 41.9028, lng: 12.4964, name: "Rome, Italy", description: "Rome historic streets" },
-    { lat: 40.4168, lng: -3.7038, name: "Madrid, Spain", description: "Madrid city center" },
-    { lat: 59.3293, lng: 18.0686, name: "Stockholm, Sweden", description: "Stockholm streets" },
-    { lat: 55.7558, lng: 37.6173, name: "Moscow, Russia", description: "Moscow urban scene" },
-    { lat: -33.8688, lng: 151.2093, name: "Sydney, Australia", description: "Sydney street view" }
-];
-
 // Google Street View API Key - 記得設定 HTTP Referrer 限制！
-// 限制到你的網域：https://unacai0316.github.io/*
 const GOOGLE_STREET_VIEW_API_KEY = 'AIzaSyBsCQ7GYN2nUofnKdDonPHFHOWkBSwMQJg';
 
 // === Asset Configuration ===
@@ -60,6 +35,144 @@ const assetConfig = {
         path: 'assets/scooter/'
     }
 };
+
+// === Random Location Generator ===
+function generateRandomLocation() {
+    // 定義更有可能有街景覆蓋的城市區域
+    const cityAreas = [
+        // 亞洲主要城市
+        { lat: [25.0, 25.1], lng: [121.5, 121.6], region: "East Asia", place: "Taipei" },
+        { lat: [35.6, 35.7], lng: [139.6, 139.8], region: "East Asia", place: "Tokyo" },
+        { lat: [37.5, 37.6], lng: [126.9, 127.1], region: "East Asia", place: "Seoul" },
+        { lat: [22.3, 22.4], lng: [114.1, 114.2], region: "East Asia", place: "Hong Kong" },
+        { lat: [1.3, 1.4], lng: [103.8, 103.9], region: "Southeast Asia", place: "Singapore" },
+        { lat: [13.7, 13.8], lng: [100.5, 100.6], region: "Southeast Asia", place: "Bangkok" },
+        
+        // 歐洲主要城市
+        { lat: [48.8, 48.9], lng: [2.3, 2.4], region: "Europe", place: "Paris" },
+        { lat: [51.5, 51.6], lng: [-0.2, -0.1], region: "Europe", place: "London" },
+        { lat: [52.5, 52.6], lng: [13.3, 13.5], region: "Europe", place: "Berlin" },
+        { lat: [41.9, 42.0], lng: [12.4, 12.5], region: "Europe", place: "Rome" },
+        { lat: [40.4, 40.5], lng: [-3.8, -3.6], region: "Europe", place: "Madrid" },
+        
+        // 北美主要城市
+        { lat: [40.7, 40.8], lng: [-74.1, -74.0], region: "North America", place: "New York" },
+        { lat: [37.7, 37.8], lng: [-122.5, -122.4], region: "North America", place: "San Francisco" },
+        { lat: [34.0, 34.1], lng: [-118.3, -118.2], region: "North America", place: "Los Angeles" },
+        { lat: [43.6, 43.7], lng: [-79.4, -79.3], region: "North America", place: "Toronto" },
+        
+        // 其他地區主要城市
+        { lat: [-33.9, -33.8], lng: [151.1, 151.3], region: "Australia", place: "Sydney" },
+        { lat: [-23.6, -23.5], lng: [-46.7, -46.6], region: "South America", place: "São Paulo" },
+        { lat: [-34.6, -34.5], lng: [-58.4, -58.3], region: "South America", place: "Buenos Aires" }
+    ];
+    
+    // 70% 的機率選擇城市區域，30% 的機率完全隨機
+    if (Math.random() < 0.7) {
+        const area = cityAreas[Math.floor(Math.random() * cityAreas.length)];
+        const lat = Math.random() * (area.lat[1] - area.lat[0]) + area.lat[0];
+        const lng = Math.random() * (area.lng[1] - area.lng[0]) + area.lng[0];
+        
+        return {
+            lat: parseFloat(lat.toFixed(6)),
+            lng: parseFloat(lng.toFixed(6)),
+            region: area.region,
+            suggestedPlace: area.place,
+            description: `Near ${area.place}`
+        };
+    } else {
+        // 完全隨機的位置（保留原有邏輯）
+        const regions = [
+            {
+                name: "East Asia",
+                latRange: [20, 50],
+                lngRange: [100, 150],
+                places: ["Taiwan", "Japan", "South Korea", "China"]
+            },
+            {
+                name: "Southeast Asia", 
+                latRange: [-10, 25],
+                lngRange: [95, 140],
+                places: ["Thailand", "Vietnam", "Malaysia", "Singapore", "Indonesia"]
+            },
+            {
+                name: "Europe",
+                latRange: [35, 70],
+                lngRange: [-10, 40],
+                places: ["France", "Germany", "Italy", "Spain", "UK", "Netherlands"]
+            },
+            {
+                name: "North America",
+                latRange: [25, 65],
+                lngRange: [-130, -60],
+                places: ["USA", "Canada", "Mexico"]
+            }
+        ];
+        
+        const region = regions[Math.floor(Math.random() * regions.length)];
+        const lat = Math.random() * (region.latRange[1] - region.latRange[0]) + region.latRange[0];
+        const lng = Math.random() * (region.lngRange[1] - region.lngRange[0]) + region.lngRange[0];
+        const place = region.places[Math.floor(Math.random() * region.places.length)];
+        
+        return {
+            lat: parseFloat(lat.toFixed(6)),
+            lng: parseFloat(lng.toFixed(6)),
+            region: region.name,
+            suggestedPlace: place,
+            description: `Random location in ${region.name}`
+        };
+    }
+}
+
+// === Geocoding Function ===
+function getLocationName(lat, lng) {
+    // 如果沒有 API Key 或 API Key 是預設值，就回傳座標
+    if (!GOOGLE_STREET_VIEW_API_KEY || GOOGLE_STREET_VIEW_API_KEY === 'YOUR_API_KEY_HERE') {
+        return Promise.resolve(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+    }
+    
+    return new Promise((resolve) => {
+        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_STREET_VIEW_API_KEY}`;
+        
+        fetch(geocodeUrl)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'OK' && data.results.length > 0) {
+                    const result = data.results[0];
+                    
+                    // 試著找到城市和國家
+                    let city = '';
+                    let country = '';
+                    
+                    for (let component of result.address_components) {
+                        if (component.types.includes('locality') || component.types.includes('administrative_area_level_1')) {
+                            city = component.long_name;
+                        }
+                        if (component.types.includes('country')) {
+                            country = component.long_name;
+                        }
+                    }
+                    
+                    if (city && country) {
+                        resolve(`${city}, ${country}`);
+                    } else if (city) {
+                        resolve(city);
+                    } else if (country) {
+                        resolve(country);
+                    } else {
+                        resolve(result.formatted_address || `${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+                    }
+                } else {
+                    // Geocoding 失敗，回傳座標
+                    resolve(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+                }
+            })
+            .catch(error => {
+                console.log('Geocoding failed:', error);
+                resolve(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+            });
+    });
+}
 
 // === P5.JS PRELOAD ===
 function preload() {
@@ -93,8 +206,9 @@ function setup() {
     let canvas = createCanvas(windowWidth, windowHeight);
     canvas.parent(document.body);
     
+    // 載入隨機街景
     loadRandomStreetView();
-    console.log('🎮 Clean sandbox version activated!');
+    console.log('🎮 Taipei Sandbox activated with full Street View support!');
 }
 
 // === P5.JS DRAW ===
@@ -135,26 +249,28 @@ function draw() {
 }
 
 // === Street View Functions ===
-async function loadRandomStreetView() {
+function loadRandomStreetView() {
     // 生成完全隨機的位置
     currentLocation = generateRandomLocation();
+    console.log(`🌍 Generated location: ${currentLocation.lat}, ${currentLocation.lng} in ${currentLocation.region}`);
     
-    if (GOOGLE_STREET_VIEW_API_KEY !== 'YOUR_API_KEY_HERE') {
-        // 嘗試載入真實的街景圖片
-        await tryLoadStreetView(currentLocation);
+    // 嘗試使用真實的 Google Street View
+    if (GOOGLE_STREET_VIEW_API_KEY && GOOGLE_STREET_VIEW_API_KEY !== 'YOUR_API_KEY_HERE') {
+        console.log('🌍 Attempting to load real street view...');
+        tryLoadStreetView(currentLocation);
     } else {
-        // 使用備用圖片
+        console.log('🔄 Using fallback street view images');
         loadFallbackStreetView();
     }
 }
 
-async function tryLoadStreetView(location, attempts = 0) {
-    const maxAttempts = 3;
+function tryLoadStreetView(location, attempts = 0) {
+    const maxAttempts = 5; // 增加重試次數
     
     // 生成隨機的視角參數
     const heading = Math.floor(Math.random() * 360);
-    const pitch = Math.floor(Math.random() * 30 - 15); // -15 到 15 度
-    const fov = 90 + Math.floor(Math.random() * 30); // 90 到 120 度
+    const pitch = Math.floor(Math.random() * 20 - 10); // -10 到 10 度
+    const fov = 90 + Math.floor(Math.random() * 20); // 90 到 110 度
     
     let streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?` +
         `size=1200x800&` +
@@ -164,50 +280,55 @@ async function tryLoadStreetView(location, attempts = 0) {
         `fov=${fov}&` +
         `key=${GOOGLE_STREET_VIEW_API_KEY}`;
     
-    try {
-        // 先檢查這個位置是否有街景資料
-        const metadataUrl = `https://maps.googleapis.com/maps/api/streetview/metadata?` +
-            `location=${location.lat},${location.lng}&` +
-            `key=${GOOGLE_STREET_VIEW_API_KEY}`;
-        
-        const metadataResponse = await fetch(metadataUrl);
-        const metadata = await metadataResponse.json();
-        
-        if (metadata.status === 'OK') {
-            // 有街景資料，載入圖片
-            loadImage(streetViewUrl,
-                async (img) => {
-                    bgImage = img;
-                    bgImage.filter(GRAY);
-                    
-                    // 嘗試獲取位置名稱
-                    currentLocation.name = await getLocationName(location.lat, location.lng);
-                    console.log(`🌍 Loaded random street view: ${currentLocation.name}`);
-                },
-                (error) => {
-                    console.log('❌ Street view image loading failed');
-                    retryOrFallback(attempts);
-                }
-            );
-        } else {
-            // 沒有街景資料，重新生成位置
-            console.log(`⚠️ No street view at ${location.lat}, ${location.lng}, trying new location...`);
+    console.log(`🔍 Trying street view at ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`);
+    
+    // 創建一個 img 元素來檢查圖片
+    let testImg = new Image();
+    testImg.crossOrigin = "anonymous";
+    
+    testImg.onload = function() {
+        // 檢查圖片大小 - Google返回的 "no imagery" 圖片通常很小
+        if (this.width < 200 || this.height < 150) {
+            console.log('⚠️ Received "no imagery" response, trying new location...');
             retryOrFallback(attempts);
+            return;
         }
-    } catch (error) {
-        console.log('❌ Street view API error:', error);
+        
+        // 圖片看起來是有效的，載入到 p5
+        loadImage(streetViewUrl,
+            (img) => {
+                bgImage = img;
+                bgImage.filter(GRAY);
+                
+                // 嘗試獲取地點名稱
+                getLocationName(location.lat, location.lng).then(name => {
+                    currentLocation.name = name;
+                    console.log(`🌍 Loaded real street view: ${currentLocation.name}`);
+                });
+            },
+            (error) => {
+                console.log('❌ P5 image loading failed, trying new location...');
+                retryOrFallback(attempts);
+            }
+        );
+    };
+    
+    testImg.onerror = function() {
+        console.log('❌ Street view loading failed, trying new location...');
         retryOrFallback(attempts);
-    }
+    };
+    
+    testImg.src = streetViewUrl;
 }
 
 function retryOrFallback(attempts) {
-    const maxAttempts = 3;
+    const maxAttempts = 5; // 配合更新的重試次數
     
     if (attempts < maxAttempts) {
         // 重新生成位置並重試
         console.log(`🔄 Generating new random location (attempt ${attempts + 1}/${maxAttempts})`);
         currentLocation = generateRandomLocation();
-        setTimeout(() => tryLoadStreetView(currentLocation, attempts + 1), 500);
+        setTimeout(() => tryLoadStreetView(currentLocation, attempts + 1), 800);
     } else {
         // 達到最大重試次數，使用備用圖片
         console.log('🏳️ Max attempts reached, using fallback images');
@@ -216,7 +337,15 @@ function retryOrFallback(attempts) {
 }
 
 function loadFallbackStreetView() {
-    // 更廣泛的街景關鍵字，對應隨機位置
+    // 確保有位置信息
+    if (!currentLocation) {
+        currentLocation = generateRandomLocation();
+    }
+    
+    // 設定位置名稱
+    currentLocation.name = `Random location in ${currentLocation.region}`;
+    
+    // 更廣泛的街景關鍵字
     let streetKeywords = [
         'street+view+random+city',
         'urban+street+photography',
@@ -233,20 +362,17 @@ function loadFallbackStreetView() {
     let keyword = streetKeywords[Math.floor(Math.random() * streetKeywords.length)];
     let imageUrl = `https://source.unsplash.com/1200x800/?${keyword}&sig=${Math.random()}`;
     
+    console.log(`🖼️ Loading fallback image: ${keyword}`);
+    
     loadImage(imageUrl,
-        async (img) => {
+        (img) => {
             bgImage = img;
             bgImage.filter(GRAY);
-            
-            // 為備用圖片也嘗試獲取位置名稱
-            if (currentLocation) {
-                currentLocation.name = await getLocationName(currentLocation.lat, currentLocation.lng);
-            }
-            console.log(`🖼️ Loaded fallback street scene: ${currentLocation?.name || 'Random Location'}`);
+            console.log(`🖼️ Loaded fallback street scene: ${currentLocation.name}`);
         },
         () => {
             bgImage = null;
-            console.log('❌ All image loading failed');
+            console.log('❌ Fallback image loading failed, using gradient background');
         }
     );
 }
@@ -256,33 +382,44 @@ function drawLocationInfo() {
     
     push();
     
-    // Location info background
-    fill(0, 0, 0, 180);
-    stroke(255, 215, 0, 200);
-    strokeWeight(2);
-    rect(20, 20, 320, 90, 10);
+    // 現代化的位置信息框設計
+    fill(255, 255, 255, 15); // 更透明的白色背景
+    stroke(255, 255, 255, 40);
+    strokeWeight(1);
+    rect(25, 25, 300, 70, 15); // 更圓滑的圓角
     
-    // Location name
-    fill(255, 215, 0);
+    // 添加 backdrop blur 效果的模擬（通過多層半透明矩形）
+    for(let i = 0; i < 3; i++) {
+        fill(255, 255, 255, 8);
+        noStroke();
+        rect(25 + i, 25 + i, 300 - i*2, 70 - i*2, 15 - i);
+    }
+    
+    // 主要位置名稱 - 更大更突出
+    fill(255, 255, 255, 255);
     textAlign(LEFT, TOP);
-    textSize(16);
-    textFont('Arial');
-    text(currentLocation.name || 'Loading location...', 35, 35);
+    textSize(14);
+    textStyle(BOLD);
+    let displayName = currentLocation.name || 'Loading location...';
+    text(displayName, 40, 40);
     
-    // Description/Region
-    fill(255, 255, 255, 200);
-    textSize(12);
-    text(currentLocation.description || `Random location in ${currentLocation.region}`, 35, 55);
+    // 地區信息 - 較小的副標題
+    fill(255, 255, 255, 180);
+    textSize(11);
+    textStyle(NORMAL);
+    text(`📍 ${currentLocation.region || 'Unknown region'}`, 40, 58);
     
-    // Coordinates
-    fill(255, 255, 255, 150);
-    textSize(10);
-    text(`${currentLocation.lat.toFixed(4)}, ${currentLocation.lng.toFixed(4)}`, 35, 75);
-    
-    // Random indicator
-    fill(100, 255, 100, 150);
+    // 右上角的坐標信息 - 小而不顯眼
+    fill(255, 255, 255, 120);
+    textAlign(RIGHT, TOP);
     textSize(9);
-    text('🎲 Randomly generated location', 35, 90);
+    text(`${currentLocation.lat.toFixed(3)}, ${currentLocation.lng.toFixed(3)}`, 315, 42);
+    
+    // 左下角的隨機指示器
+    fill(100, 255, 100, 150);
+    textAlign(LEFT, BOTTOM);
+    textSize(8);
+    text('🎲 Random', 40, 85);
     
     pop();
 }
@@ -602,11 +739,4 @@ function saveImage() {
 
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
-}
-
-function hideApiInfo() {
-    const apiInfo = document.getElementById('api-info');
-    if (apiInfo) {
-        apiInfo.style.display = 'none';
-    }
 }
