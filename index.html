@@ -2,38 +2,71 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Taipei Try-it! box</title>
+    <title>Taipei Sandbox - Clean Version</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+    <!-- API Key Info (Remove after setting up) -->
+    <div id="api-info" class="api-info">
+        <div class="api-content">
+            <h3>🔑 Google API Setup for Random Street Views</h3>
+            <p>Enable these APIs in Google Cloud Console:</p>
+            <ul>
+                <li>• Street View Static API</li>
+                <li>• Geocoding API (for location names)</li>
+            </ul>
+            <p>Now generates completely random worldwide locations!</p>
+            <button onclick="hideApiInfo()" class="api-close">Got it!</button>
+        </div>
+    </div>
     <!-- Tool Selection Panel -->
     <div id="ui" class="tool-panel">
         <button class="tool-btn" onclick="selectTool('vendor')" data-tool="vendor">
-            <div class="tool-icon">🏪</div>
+            <div class="tool-icon">
+                <i class="fas fa-store"></i>
+            </div>
             <div class="tool-label">Vendor</div>
         </button>
         <button class="tool-btn" onclick="selectTool('scooter')" data-tool="scooter">
-            <div class="tool-icon">🛵</div>
+            <div class="tool-icon">
+                <i class="fas fa-motorcycle"></i>
+            </div>
             <div class="tool-label">Scooter</div>
         </button>
         <button class="tool-btn" onclick="selectTool('rain')" data-tool="rain">
-            <div class="tool-icon">☂️</div>
+            <div class="tool-icon">
+                <i class="fas fa-umbrella"></i>
+            </div>
             <div class="tool-label">Rain Cover</div>
         </button>
         <button class="tool-btn" onclick="selectTool('balcony')" data-tool="balcony">
-            <div class="tool-icon">🏠</div>
+            <div class="tool-icon">
+                <i class="fas fa-building"></i>
+            </div>
             <div class="tool-label">Balcony Extension</div>
         </button>
     </div>
     
     <!-- Action Buttons -->
     <div class="action-buttons">
-        <button class="action-btn randomize-btn" onclick="randomBG()">Randomize the City</button>
-        <button class="action-btn save-btn" onclick="saveImage()">Save Your Taipei!</button>
-        <button class="action-btn clear-btn" onclick="clearAll()">Clear</button>
+        <button class="action-btn randomize-btn" onclick="randomBG()">
+            <i class="fas fa-dice"></i>
+            <span>Randomize the City</span>
+        </button>
+        <button class="action-btn save-btn" onclick="saveImage()">
+            <i class="fas fa-download"></i>
+            <span>Save Your Taipei!</span>
+        </button>
+        <button class="action-btn clear-btn" onclick="clearAll()">
+            <i class="fas fa-trash-alt"></i>
+            <span>Clear</span>
+        </button>
     </div>
 
     <script src="game.js"></script>
+</body>
+</html>
 </body>
 </html>
