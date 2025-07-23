@@ -34,8 +34,35 @@ const assetConfig = {
         angles: ['L', 'front', 'R'],
         path: 'assets/scooter/'
     }
-};
+}
 
+// === Object Controls ===
+function changeAngle(obj) {
+    if (!obj.hasAsset) return;
+    
+    obj.angleIndex = (obj.angleIndex + 1) % 3;
+    let config = assetConfig[obj.type];
+    let angleName = config.angles[obj.angleIndex];
+    
+    if (assetImages[obj.type][obj.styleNum] && assetImages[obj.type][obj.styleNum][angleName]) {
+        obj.currentImage = assetImages[obj.type][obj.styleNum][angleName];
+        console.log(`🔄 Changed angle to ${angleName}`);
+    }
+}
+
+function flipObject(obj) {
+    obj.flipped = !obj.flipped;
+    console.log(`🔀 Object ${obj.flipped ? 'flipped horizontally' : 'restored'}`);
+}
+
+function changeLayer(obj) {
+    let index = objects.indexOf(obj);
+    if (index > -1) {
+        objects.splice(index, 1);
+        objects.push(obj);
+        console.log('📤 Moved to front');
+    };
+}
 // === Random Location Generator ===
 function generateRandomLocation() {
     // 定義更有可能有街景覆蓋的城市區域
@@ -224,7 +251,8 @@ function draw() {
         noTint();
         pop();
     } else {
-        drawFallbackBackground();
+        // 如果沒有背景圖片，只畫一個簡單的漸層
+        drawSimpleBackground();
     }
     
     // Draw location info
@@ -242,14 +270,40 @@ function draw() {
         drawFollowing();
     }
     
-    // Draw selection indicators
+    // Draw selection indicators and floating controls
     if (selectedObject && !dragging && !rotating) {
         drawSelectionIndicator();
+        drawFloatingControls();
     }
+    
+    // Draw help panel
+    drawHelpPanel();
+    
+    // Draw no imagery hint if needed
+    if (!bgImage) {
+        drawNoImageryHint();
+    }
+}
+
+// === Simple Background for Loading State ===
+function drawSimpleBackground() {
+    push();
+    
+    // 簡單的漸層背景，不會干擾提示信息
+    for (let i = 0; i <= height; i++) {
+        let alpha = map(i, 0, height, 200, 160);
+        stroke(alpha, alpha, alpha + 10);
+        line(0, i, width, i);
+    }
+    
+    pop();
 }
 
 // === Street View Functions ===
 function loadRandomStreetView() {
+    // 在開始載入前先清空背景，這樣可以顯示提示
+    bgImage = null;
+    
     // 生成完全隨機的位置
     currentLocation = generateRandomLocation();
     console.log(`🌍 Generated location: ${currentLocation.lat}, ${currentLocation.lng} in ${currentLocation.region}`);
@@ -290,6 +344,7 @@ function tryLoadStreetView(location, attempts = 0) {
         // 檢查圖片大小 - Google返回的 "no imagery" 圖片通常很小
         if (this.width < 200 || this.height < 150) {
             console.log('⚠️ Received "no imagery" response, trying new location...');
+            bgImage = null; // 確保設為 null
             retryOrFallback(attempts);
             return;
         }
@@ -308,6 +363,7 @@ function tryLoadStreetView(location, attempts = 0) {
             },
             (error) => {
                 console.log('❌ P5 image loading failed, trying new location...');
+                bgImage = null; // 確保設為 null
                 retryOrFallback(attempts);
             }
         );
@@ -315,6 +371,7 @@ function tryLoadStreetView(location, attempts = 0) {
     
     testImg.onerror = function() {
         console.log('❌ Street view loading failed, trying new location...');
+        bgImage = null; // 確保設為 null
         retryOrFallback(attempts);
     };
     
@@ -328,10 +385,12 @@ function retryOrFallback(attempts) {
         // 重新生成位置並重試
         console.log(`🔄 Generating new random location (attempt ${attempts + 1}/${maxAttempts})`);
         currentLocation = generateRandomLocation();
+        bgImage = null; // 在重試期間設為 null 以顯示提示
         setTimeout(() => tryLoadStreetView(currentLocation, attempts + 1), 800);
     } else {
         // 達到最大重試次數，使用備用圖片
         console.log('🏳️ Max attempts reached, using fallback images');
+        bgImage = null; // 確保設為 null
         loadFallbackStreetView();
     }
 }
@@ -371,8 +430,8 @@ function loadFallbackStreetView() {
             console.log(`🖼️ Loaded fallback street scene: ${currentLocation.name}`);
         },
         () => {
-            bgImage = null;
-            console.log('❌ Fallback image loading failed, using gradient background');
+            bgImage = null; // 確保設為 null 以顯示提示
+            console.log('❌ Fallback image loading failed, showing no imagery hint');
         }
     );
 }
@@ -382,44 +441,175 @@ function drawLocationInfo() {
     
     push();
     
-    // 現代化的位置信息框設計
-    fill(255, 255, 255, 15); // 更透明的白色背景
-    stroke(255, 255, 255, 40);
-    strokeWeight(1);
-    rect(25, 25, 300, 70, 15); // 更圓滑的圓角
-    
-    // 添加 backdrop blur 效果的模擬（通過多層半透明矩形）
-    for(let i = 0; i < 3; i++) {
-        fill(255, 255, 255, 8);
+    // 多層毛玻璃效果背景
+    for(let i = 0; i < 5; i++) {
+        fill(255, 255, 255, 25 + i * 8); // 漸層不透明度
         noStroke();
-        rect(25 + i, 25 + i, 300 - i*2, 70 - i*2, 15 - i);
+        rect(25, 25, 300 - i, 70 - i, 15 - i/2);
     }
     
-    // 主要位置名稱 - 更大更突出
-    fill(255, 255, 255, 255);
+    // 主要背景框
+    fill(255, 255, 255, 180); // 增加不透明度
+    stroke(255, 255, 255, 100);
+    strokeWeight(1);
+    rect(25, 25, 300, 70, 15);
+    
+    // 主要位置名稱 - 深灰色
+    fill(60, 60, 60, 255); // 深灰色文字
     textAlign(LEFT, TOP);
     textSize(14);
     textStyle(BOLD);
     let displayName = currentLocation.name || 'Loading location...';
     text(displayName, 40, 40);
     
-    // 地區信息 - 較小的副標題
-    fill(255, 255, 255, 180);
+    // 地區信息 - 較淡的深灰色
+    fill(80, 80, 80, 200);
     textSize(11);
     textStyle(NORMAL);
     text(`📍 ${currentLocation.region || 'Unknown region'}`, 40, 58);
     
-    // 右上角的坐標信息 - 小而不顯眼
-    fill(255, 255, 255, 120);
+    // 右上角的坐標信息 - 更淡的深灰色
+    fill(100, 100, 100, 180);
     textAlign(RIGHT, TOP);
     textSize(9);
     text(`${currentLocation.lat.toFixed(3)}, ${currentLocation.lng.toFixed(3)}`, 315, 42);
     
     // 左下角的隨機指示器
-    fill(100, 255, 100, 150);
+    fill(0, 150, 0, 200); // 深綠色
     textAlign(LEFT, BOTTOM);
     textSize(8);
     text('🎲 Random', 40, 85);
+    
+    pop();
+}
+
+// === Floating Controls ===
+function drawFloatingControls() {
+    if (!selectedObject) return;
+    
+    let obj = selectedObject;
+    let spacing = 50;
+    let controlY = obj.y - 100;
+    let startX = obj.x - spacing;
+    
+    // Constrain to screen
+    controlY = constrain(controlY, 50, height - 50);
+    startX = constrain(startX, spacing * 2, width - spacing * 3);
+    
+    // Angle control (if has asset)
+    if (obj.hasAsset) {
+        drawFloatingButton(startX - spacing, controlY, '↻', 'Change Angle');
+        startX += spacing;
+    }
+    
+    // Flip control
+    drawFloatingButton(startX, controlY, '⟷', 'Flip Horizontal');
+    
+    // Layer control
+    drawFloatingButton(startX + spacing, controlY, '↑', 'Move to Front');
+}
+
+function drawFloatingButton(x, y, icon, tooltip) {
+    push();
+    
+    // Button background
+    fill(255, 255, 255, 240);
+    stroke(100, 100, 100, 150);
+    strokeWeight(1);
+    ellipse(x, y, 36);
+    
+    // Hover effect
+    let d = dist(mouseX, mouseY, x, y);
+    if (d < 18) {
+        stroke(255, 215, 0, 200);
+        strokeWeight(2);
+        fill(255, 255, 255, 255);
+        ellipse(x, y, 40);
+    }
+    
+    // Icon
+    fill(50, 50, 50);
+    textAlign(CENTER, CENTER);
+    textSize(16);
+    textStyle(BOLD);
+    text(icon, x, y - 1);
+    
+    pop();
+}
+
+// === Help Panel ===
+function drawHelpPanel() {
+    push();
+    
+    // 多層毛玻璃效果背景
+    for(let i = 0; i < 5; i++) {
+        fill(255, 255, 255, 20 + i * 10); // 漸層不透明度
+        noStroke();
+        rect(width - 280, 25, 250 - i, 120 - i, 12 - i/2);
+    }
+    
+    // 主要背景框
+    fill(255, 255, 255, 180); // 增加不透明度
+    stroke(255, 255, 255, 100);
+    strokeWeight(1);
+    rect(width - 280, 25, 250, 120, 12);
+    
+    // Title - 深灰色
+    fill(60, 60, 60, 255);
+    textAlign(LEFT, TOP);
+    textSize(13);
+    textStyle(BOLD);
+    text('🎮 Controls', width - 270, 40);
+    
+    // Instructions - 深灰色
+    fill(80, 80, 80, 200);
+    textSize(10);
+    textStyle(NORMAL);
+    let instructions = [
+        '• Click object to select',
+        '• Drag to move, Shift+drag to rotate', 
+        '• Mouse wheel to scale',
+        '• F key to flip, R key to rotate 15°',
+        '• Delete key to remove object',
+        '• Use floating buttons for more options'
+    ];
+    
+    for (let i = 0; i < instructions.length; i++) {
+        text(instructions[i], width - 270, 58 + i * 12);
+    }
+    
+    pop();
+}
+
+// === No Imagery Hint ===
+function drawNoImageryHint() {
+    push();
+    
+    // 多層毛玻璃效果背景
+    for(let i = 0; i < 5; i++) {
+        fill(255, 255, 255, 30 + i * 15); // 漸層不透明度
+        noStroke();
+        rect(width/2 - 200, height/2 - 40, 400 - i*2, 80 - i, 15 - i/2);
+    }
+    
+    // 主要背景框
+    fill(255, 255, 255, 200); // 高不透明度
+    stroke(255, 100, 100, 150);
+    strokeWeight(2);
+    rect(width/2 - 200, height/2 - 40, 400, 80, 15);
+    
+    // 主要提示文字 - 深灰色
+    fill(60, 60, 60, 255);
+    textAlign(CENTER, CENTER);
+    textSize(16);
+    textStyle(BOLD);
+    text('📍 No street view available for this location', width/2, height/2 - 10);
+    
+    // 副標題 - 較淡的深灰色
+    textSize(12);
+    textStyle(NORMAL);
+    fill(80, 80, 80, 200);
+    text('Click "Randomize the City" to try a different location!', width/2, height/2 + 12);
     
     pop();
 }
@@ -457,7 +647,7 @@ function drawObject(obj) {
     push();
     translate(obj.x, obj.y);
     rotate(radians(obj.rotation));
-    scale(obj.scale * (obj.flipped ? -1 : 1), obj.scale);
+    scale(obj.scale * (obj.flipped ? -1 : 1), obj.scale); // 支援水平翻轉
     
     // Draw object based on type
     if (obj.hasAsset && obj.currentImage && obj.currentImage.width > 0) {
@@ -567,8 +757,8 @@ function createNewObject(type, x, y) {
         rotation: 0,
         scale: 1,
         hasAsset: hasAsset,
-        angleIndex: 1,
-        flipped: false,
+        angleIndex: 1, // 從 1 開始 (front)
+        flipped: false, // 支援水平翻轉
         zIndex: objects.length
     };
     
@@ -606,6 +796,35 @@ function selectTool(tool) {
 }
 
 function mousePressed() {
+    // Check floating controls first
+    if (selectedObject && !dragging) {
+        let obj = selectedObject;
+        let spacing = 50;
+        let controlY = constrain(obj.y - 100, 50, height - 50);
+        let startX = constrain(obj.x - spacing, spacing * 2, width - spacing * 3);
+        
+        // Check angle button (if has asset)
+        if (obj.hasAsset) {
+            if (dist(mouseX, mouseY, startX - spacing, controlY) < 18) {
+                changeAngle(obj);
+                return;
+            }
+            startX += spacing;
+        }
+        
+        // Check flip button
+        if (dist(mouseX, mouseY, startX, controlY) < 18) {
+            flipObject(obj);
+            return;
+        }
+        
+        // Check layer button
+        if (dist(mouseX, mouseY, startX + spacing, controlY) < 18) {
+            changeLayer(obj);
+            return;
+        }
+    }
+    
     if (following) {
         // Place new object
         let newObj = createNewObject(following, mouseX, mouseY);
@@ -669,6 +888,7 @@ function keyPressed() {
     if (selectedObject) {
         if (key === 'r' || key === 'R') {
             selectedObject.rotation += 15;
+            console.log(`🔄 Rotated 15° - total: ${selectedObject.rotation}°`);
         }
         if (key === 'f' || key === 'F') {
             flipObject(selectedObject);
