@@ -462,23 +462,36 @@ function drawLocationInfo() {
     let displayName = currentLocation.name || 'Loading location...';
     text(displayName, 40, 40);
     
-    // 地區信息 - 較淡的深灰色
+    // 地區信息 - 根據是否為用戶上傳調整顯示
     fill(80, 80, 80, 200);
     textSize(11);
     textStyle(NORMAL);
-    text(`📍 ${currentLocation.region || 'Unknown region'}`, 40, 58);
+    if (currentLocation.isUserUpload) {
+        text(`📸 ${currentLocation.description}`, 40, 58);
+    } else {
+        text(`📍 ${currentLocation.region || 'Unknown region'}`, 40, 58);
+    }
     
-    // 右上角的坐標信息 - 更淡的深灰色
-    fill(100, 100, 100, 180);
-    textAlign(RIGHT, TOP);
-    textSize(9);
-    text(`${currentLocation.lat.toFixed(3)}, ${currentLocation.lng.toFixed(3)}`, 315, 42);
+    // 右上角的坐標信息 - 只有非用戶上傳圖片才顯示坐標
+    if (!currentLocation.isUserUpload) {
+        fill(100, 100, 100, 180);
+        textAlign(RIGHT, TOP);
+        textSize(9);
+        text(`${currentLocation.lat.toFixed(3)}, ${currentLocation.lng.toFixed(3)}`, 315, 42);
+    }
     
-    // 左下角的隨機指示器
-    fill(0, 150, 0, 200); // 深綠色
-    textAlign(LEFT, BOTTOM);
-    textSize(8);
-    text('🎲 Random', 40, 85);
+    // 左下角的指示器 - 根據圖片來源調整
+    if (currentLocation.isUserUpload) {
+        fill(255, 140, 0, 200); // 橙色表示用戶上傳
+        textAlign(LEFT, BOTTOM);
+        textSize(8);
+        text('📷 Your Photo', 40, 85);
+    } else {
+        fill(0, 150, 0, 200); // 深綠色表示隨機生成
+        textAlign(LEFT, BOTTOM);
+        textSize(8);
+        text('🎲 Random', 40, 85);
+    }
     
     pop();
 }
@@ -545,14 +558,14 @@ function drawHelpPanel() {
     for(let i = 0; i < 5; i++) {
         fill(255, 255, 255, 20 + i * 10); // 漸層不透明度
         noStroke();
-        rect(width - 280, 25, 250 - i, 120 - i, 12 - i/2);
+        rect(width - 280, 25, 250 - i, 140 - i, 12 - i/2); // 增加高度
     }
     
     // 主要背景框
     fill(255, 255, 255, 180); // 增加不透明度
     stroke(255, 255, 255, 100);
     strokeWeight(1);
-    rect(width - 280, 25, 250, 120, 12);
+    rect(width - 280, 25, 250, 140, 12); // 增加高度
     
     // Title - 深灰色
     fill(60, 60, 60, 255);
@@ -571,7 +584,8 @@ function drawHelpPanel() {
         '• Mouse wheel to scale',
         '• F key to flip, R key to rotate 15°',
         '• Delete key to remove object',
-        '• Use floating buttons for more options'
+        '• Use floating buttons for more options',
+        '• Upload your own photos as background'
     ];
     
     for (let i = 0; i < instructions.length; i++) {
@@ -936,6 +950,62 @@ function changeLayer(obj) {
 function randomBG() {
     loadRandomStreetView();
     console.log('🎲 Loading new random street view...');
+}
+
+function triggerImageUpload() {
+    document.getElementById('imageUpload').click();
+    console.log('📁 Opening file dialog...');
+}
+
+function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // 檢查是否為圖片文件
+    if (!file.type.startsWith('image/')) {
+        alert('請選擇一個有效的圖片文件！');
+        return;
+    }
+    
+    console.log(`📷 Loading user image: ${file.name}`);
+    
+    // 創建 FileReader 來讀取文件
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        // 使用 p5.js 載入圖片
+        loadImage(e.target.result, 
+            (img) => {
+                bgImage = img;
+                bgImage.filter(GRAY); // 應用灰階濾鏡
+                
+                // 設定用戶上傳圖片的位置信息
+                currentLocation = {
+                    name: file.name.replace(/\.[^/.]+$/, ""), // 移除副檔名
+                    region: "User Upload",
+                    description: "Your personal photo",
+                    lat: 0,
+                    lng: 0,
+                    isUserUpload: true
+                };
+                
+                console.log(`✅ User image loaded: ${file.name}`);
+            },
+            (error) => {
+                console.error('❌ Failed to load user image:', error);
+                alert('載入圖片失敗，請嘗試其他圖片！');
+            }
+        );
+    };
+    
+    reader.onerror = function() {
+        console.error('❌ FileReader error');
+        alert('讀取圖片文件失敗！');
+    };
+    
+    reader.readAsDataURL(file);
+    
+    // 清空 input 值，這樣用戶可以重複上傳同一個文件
+    event.target.value = '';
 }
 
 function clearAll() {
