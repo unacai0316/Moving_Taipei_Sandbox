@@ -15,7 +15,7 @@ const GOOGLE_STREET_VIEW_API_KEY = 'AIzaSyBsCQ7GYN2nUofnKdDonPHFHOWkBSwMQJg';
 // === Asset Configuration ===
 const assetConfig = {
     vendor: {
-        count: 2,
+        count: 5,
         angles: ['L', 'front', 'R'],
         path: 'assets/vendor/'
     },
@@ -30,7 +30,7 @@ const assetConfig = {
         path: 'assets/rain/'
     },
     scooter: {
-        count: 2,
+        count: 3,
         angles: ['L', 'front', 'R'],
         path: 'assets/scooter/'
     }
