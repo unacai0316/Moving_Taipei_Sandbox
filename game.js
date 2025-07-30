@@ -20,7 +20,7 @@ const assetConfig = {
         path: 'assets/vendor/'
     },
     balcony: {
-        count: 1,
+        count: 2,
         angles: ['L', 'front', 'R'],
         path: 'assets/balcony/'
     },
