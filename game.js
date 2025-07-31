@@ -8,8 +8,9 @@ let rotating = false;
 let bgImage = null;
 let assetImages = {};
 let currentLocation = null;
+let isExporting = false; // Export state
 
-// Google Street View API Key - 記得設定 HTTP Referrer 限制！
+// Google Street View API Key
 const GOOGLE_STREET_VIEW_API_KEY = 'AIzaSyBsCQ7GYN2nUofnKdDonPHFHOWkBSwMQJg';
 
 // === Asset Configuration ===
@@ -63,11 +64,12 @@ function changeLayer(obj) {
         console.log('📤 Moved to front');
     };
 }
+
 // === Random Location Generator ===
 function generateRandomLocation() {
-    // 定義更有可能有街景覆蓋的城市區域
+    // Define city areas more likely to have street view coverage
     const cityAreas = [
-        // 亞洲主要城市
+        // Asian major cities
         { lat: [25.0, 25.1], lng: [121.5, 121.6], region: "East Asia", place: "Taipei" },
         { lat: [35.6, 35.7], lng: [139.6, 139.8], region: "East Asia", place: "Tokyo" },
         { lat: [37.5, 37.6], lng: [126.9, 127.1], region: "East Asia", place: "Seoul" },
@@ -75,26 +77,26 @@ function generateRandomLocation() {
         { lat: [1.3, 1.4], lng: [103.8, 103.9], region: "Southeast Asia", place: "Singapore" },
         { lat: [13.7, 13.8], lng: [100.5, 100.6], region: "Southeast Asia", place: "Bangkok" },
         
-        // 歐洲主要城市
+        // European major cities
         { lat: [48.8, 48.9], lng: [2.3, 2.4], region: "Europe", place: "Paris" },
         { lat: [51.5, 51.6], lng: [-0.2, -0.1], region: "Europe", place: "London" },
         { lat: [52.5, 52.6], lng: [13.3, 13.5], region: "Europe", place: "Berlin" },
         { lat: [41.9, 42.0], lng: [12.4, 12.5], region: "Europe", place: "Rome" },
         { lat: [40.4, 40.5], lng: [-3.8, -3.6], region: "Europe", place: "Madrid" },
         
-        // 北美主要城市
+        // North American major cities
         { lat: [40.7, 40.8], lng: [-74.1, -74.0], region: "North America", place: "New York" },
         { lat: [37.7, 37.8], lng: [-122.5, -122.4], region: "North America", place: "San Francisco" },
         { lat: [34.0, 34.1], lng: [-118.3, -118.2], region: "North America", place: "Los Angeles" },
         { lat: [43.6, 43.7], lng: [-79.4, -79.3], region: "North America", place: "Toronto" },
         
-        // 其他地區主要城市
+        // Other major cities
         { lat: [-33.9, -33.8], lng: [151.1, 151.3], region: "Australia", place: "Sydney" },
         { lat: [-23.6, -23.5], lng: [-46.7, -46.6], region: "South America", place: "São Paulo" },
         { lat: [-34.6, -34.5], lng: [-58.4, -58.3], region: "South America", place: "Buenos Aires" }
     ];
     
-    // 70% 的機率選擇城市區域，30% 的機率完全隨機
+    // 70% chance to choose city area, 30% completely random
     if (Math.random() < 0.7) {
         const area = cityAreas[Math.floor(Math.random() * cityAreas.length)];
         const lat = Math.random() * (area.lat[1] - area.lat[0]) + area.lat[0];
@@ -108,7 +110,7 @@ function generateRandomLocation() {
             description: `Near ${area.place}`
         };
     } else {
-        // 完全隨機的位置（保留原有邏輯）
+        // Completely random location
         const regions = [
             {
                 name: "East Asia",
@@ -153,13 +155,12 @@ function generateRandomLocation() {
 
 // === Geocoding Function ===
 function getLocationName(lat, lng) {
-    // 如果沒有 API Key 或 API Key 是預設值，就回傳座標
     if (!GOOGLE_STREET_VIEW_API_KEY || GOOGLE_STREET_VIEW_API_KEY === 'YOUR_API_KEY_HERE') {
         return Promise.resolve(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
     }
     
     return new Promise((resolve) => {
-        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_STREET_VIEW_API_KEY}`;
+        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=en&key=${GOOGLE_STREET_VIEW_API_KEY}`;
         
         fetch(geocodeUrl)
             .then(response => response.json())
@@ -167,7 +168,7 @@ function getLocationName(lat, lng) {
                 if (data.status === 'OK' && data.results.length > 0) {
                     const result = data.results[0];
                     
-                    // 試著找到城市和國家
+                    // Try to find city and country
                     let city = '';
                     let country = '';
                     
@@ -190,7 +191,7 @@ function getLocationName(lat, lng) {
                         resolve(result.formatted_address || `${lat.toFixed(4)}, ${lng.toFixed(4)}`);
                     }
                 } else {
-                    // Geocoding 失敗，回傳座標
+                    // Geocoding failed, return coordinates
                     resolve(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
                 }
             })
@@ -233,9 +234,51 @@ function setup() {
     let canvas = createCanvas(windowWidth, windowHeight);
     canvas.parent(document.body);
     
-    // 載入隨機街景
+    // Load random street view
     loadRandomStreetView();
+    
+    // Initialize tool panel auto-hide
+    initToolPanelAutoHide();
+    
     console.log('🎮 Taipei Sandbox activated with full Street View support!');
+}
+
+// === Tool Panel Auto-Hide System (Simplified) ===
+function initToolPanelAutoHide() {
+    const toolPanel = document.querySelector('.tool-panel');
+    
+    // Start collapsed
+    setTimeout(() => {
+        if (!currentTool && !following) {
+            toolPanel.classList.add('collapsed');
+        }
+    }, 3000); // Hide after 3 seconds initially
+    
+    // Simple hover mechanism - no complex timers
+    toolPanel.addEventListener('mouseenter', () => {
+        // Panel expands automatically via CSS :hover
+    });
+    
+    toolPanel.addEventListener('mouseleave', () => {
+        // Collapse after mouse leaves if no tool is selected
+        setTimeout(() => {
+            if (!currentTool && !following) {
+                toolPanel.classList.add('collapsed');
+            }
+        }, 1000); // 1 second delay
+    });
+}
+
+function showToolPanel() {
+    const toolPanel = document.querySelector('.tool-panel');
+    toolPanel.classList.remove('collapsed');
+}
+
+function hideToolPanel() {
+    const toolPanel = document.querySelector('.tool-panel');
+    if (!currentTool && !following) {
+        toolPanel.classList.add('collapsed');
+    }
 }
 
 // === P5.JS DRAW ===
@@ -251,13 +294,8 @@ function draw() {
         noTint();
         pop();
     } else {
-        // 如果沒有背景圖片，只畫一個簡單的漸層
+        // Simple gradient if no background image
         drawSimpleBackground();
-    }
-    
-    // Draw location info
-    if (currentLocation) {
-        drawLocationInfo();
     }
     
     // Draw all objects
@@ -265,22 +303,29 @@ function draw() {
         drawObject(obj);
     }
     
-    // Draw following object (preview when placing)
-    if (following) {
+    // Draw following object (preview when placing) - not during export
+    if (following && !isExporting) {
         drawFollowing();
     }
     
-    // Draw selection indicators and floating controls
-    if (selectedObject && !dragging && !rotating) {
+    // Draw selection indicators and floating controls (not during export)
+    if (selectedObject && !dragging && !rotating && !isExporting) {
         drawSelectionIndicator();
         drawFloatingControls();
     }
     
-    // Draw help panel
-    drawHelpPanel();
+    // Draw location info - always on top, also show during export
+    if (currentLocation) {
+        drawLocationInfo();
+    }
     
-    // Draw no imagery hint if needed
-    if (!bgImage) {
+    // Draw help panel (only when not exporting)
+    if (!isExporting) {
+        drawHelpPanel();
+    }
+    
+    // Draw no imagery hint if needed (not during export)
+    if (!bgImage && !isExporting) {
         drawNoImageryHint();
     }
 }
@@ -289,7 +334,7 @@ function draw() {
 function drawSimpleBackground() {
     push();
     
-    // 簡單的漸層背景，不會干擾提示信息
+    // Simple gradient background that won't interfere with hints
     for (let i = 0; i <= height; i++) {
         let alpha = map(i, 0, height, 200, 160);
         stroke(alpha, alpha, alpha + 10);
@@ -301,14 +346,14 @@ function drawSimpleBackground() {
 
 // === Street View Functions ===
 function loadRandomStreetView() {
-    // 在開始載入前先清空背景，這樣可以顯示提示
+    // Clear background first to show hints
     bgImage = null;
     
-    // 生成完全隨機的位置
+    // Generate completely random location
     currentLocation = generateRandomLocation();
     console.log(`🌍 Generated location: ${currentLocation.lat}, ${currentLocation.lng} in ${currentLocation.region}`);
     
-    // 嘗試使用真實的 Google Street View
+    // Try to use real Google Street View
     if (GOOGLE_STREET_VIEW_API_KEY && GOOGLE_STREET_VIEW_API_KEY !== 'YOUR_API_KEY_HERE') {
         console.log('🌍 Attempting to load real street view...');
         tryLoadStreetView(currentLocation);
@@ -319,12 +364,12 @@ function loadRandomStreetView() {
 }
 
 function tryLoadStreetView(location, attempts = 0) {
-    const maxAttempts = 5; // 增加重試次數
+    const maxAttempts = 5;
     
-    // 生成隨機的視角參數
+    // Generate random view parameters
     const heading = Math.floor(Math.random() * 360);
-    const pitch = Math.floor(Math.random() * 20 - 10); // -10 到 10 度
-    const fov = 90 + Math.floor(Math.random() * 20); // 90 到 110 度
+    const pitch = Math.floor(Math.random() * 20 - 10); // -10 to 10 degrees
+    const fov = 90 + Math.floor(Math.random() * 20); // 90 to 110 degrees
     
     let streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?` +
         `size=1200x800&` +
@@ -336,26 +381,26 @@ function tryLoadStreetView(location, attempts = 0) {
     
     console.log(`🔍 Trying street view at ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`);
     
-    // 創建一個 img 元素來檢查圖片
+    // Create img element to check image
     let testImg = new Image();
     testImg.crossOrigin = "anonymous";
     
     testImg.onload = function() {
-        // 檢查圖片大小 - Google返回的 "no imagery" 圖片通常很小
+        // Check image size - Google's "no imagery" images are usually small
         if (this.width < 200 || this.height < 150) {
             console.log('⚠️ Received "no imagery" response, trying new location...');
-            bgImage = null; // 確保設為 null
+            bgImage = null;
             retryOrFallback(attempts);
             return;
         }
         
-        // 圖片看起來是有效的，載入到 p5
+        // Image looks valid, load into p5
         loadImage(streetViewUrl,
             (img) => {
                 bgImage = img;
                 bgImage.filter(GRAY);
                 
-                // 嘗試獲取地點名稱
+                // Try to get location name
                 getLocationName(location.lat, location.lng).then(name => {
                     currentLocation.name = name;
                     console.log(`🌍 Loaded real street view: ${currentLocation.name}`);
@@ -363,7 +408,7 @@ function tryLoadStreetView(location, attempts = 0) {
             },
             (error) => {
                 console.log('❌ P5 image loading failed, trying new location...');
-                bgImage = null; // 確保設為 null
+                bgImage = null;
                 retryOrFallback(attempts);
             }
         );
@@ -371,7 +416,7 @@ function tryLoadStreetView(location, attempts = 0) {
     
     testImg.onerror = function() {
         console.log('❌ Street view loading failed, trying new location...');
-        bgImage = null; // 確保設為 null
+        bgImage = null;
         retryOrFallback(attempts);
     };
     
@@ -379,32 +424,32 @@ function tryLoadStreetView(location, attempts = 0) {
 }
 
 function retryOrFallback(attempts) {
-    const maxAttempts = 5; // 配合更新的重試次數
+    const maxAttempts = 5;
     
     if (attempts < maxAttempts) {
-        // 重新生成位置並重試
+        // Regenerate location and retry
         console.log(`🔄 Generating new random location (attempt ${attempts + 1}/${maxAttempts})`);
         currentLocation = generateRandomLocation();
-        bgImage = null; // 在重試期間設為 null 以顯示提示
+        bgImage = null; // Set to null during retry to show hints
         setTimeout(() => tryLoadStreetView(currentLocation, attempts + 1), 800);
     } else {
-        // 達到最大重試次數，使用備用圖片
+        // Max attempts reached, use fallback images
         console.log('🏳️ Max attempts reached, using fallback images');
-        bgImage = null; // 確保設為 null
+        bgImage = null;
         loadFallbackStreetView();
     }
 }
 
 function loadFallbackStreetView() {
-    // 確保有位置信息
+    // Ensure location info exists
     if (!currentLocation) {
         currentLocation = generateRandomLocation();
     }
     
-    // 設定位置名稱
+    // Set location name
     currentLocation.name = `Random location in ${currentLocation.region}`;
     
-    // 更廣泛的街景關鍵字
+    // Broader street view keywords
     let streetKeywords = [
         'street+view+random+city',
         'urban+street+photography',
@@ -430,7 +475,7 @@ function loadFallbackStreetView() {
             console.log(`🖼️ Loaded fallback street scene: ${currentLocation.name}`);
         },
         () => {
-            bgImage = null; // 確保設為 null 以顯示提示
+            bgImage = null;
             console.log('❌ Fallback image loading failed, showing no imagery hint');
         }
     );
@@ -441,29 +486,33 @@ function drawLocationInfo() {
     
     push();
     
-    // 多層毛玻璃效果背景
+    // Enhanced background opacity during export for clarity
+    let bgOpacity = isExporting ? 220 : 180;
+    let textOpacity = isExporting ? 255 : 255;
+    
+    // Multi-layer glass effect background
     for(let i = 0; i < 5; i++) {
-        fill(255, 255, 255, 25 + i * 8); // 漸層不透明度
+        fill(255, 255, 255, (25 + i * 8) * (isExporting ? 1.2 : 1));
         noStroke();
         rect(25, 25, 300 - i, 70 - i, 15 - i/2);
     }
     
-    // 主要背景框
-    fill(255, 255, 255, 180); // 增加不透明度
+    // Main background frame
+    fill(255, 255, 255, bgOpacity);
     stroke(255, 255, 255, 100);
     strokeWeight(1);
     rect(25, 25, 300, 70, 15);
     
-    // 主要位置名稱 - 深灰色
-    fill(60, 60, 60, 255); // 深灰色文字
+    // Main location name - dark gray
+    fill(60, 60, 60, textOpacity);
     textAlign(LEFT, TOP);
     textSize(14);
     textStyle(BOLD);
     let displayName = currentLocation.name || 'Loading location...';
     text(displayName, 40, 40);
     
-    // 地區信息 - 根據是否為用戶上傳調整顯示
-    fill(80, 80, 80, 200);
+    // Region info - adjust display based on user upload
+    fill(80, 80, 80, textOpacity * 0.8);
     textSize(11);
     textStyle(NORMAL);
     if (currentLocation.isUserUpload) {
@@ -472,22 +521,22 @@ function drawLocationInfo() {
         text(`📍 ${currentLocation.region || 'Unknown region'}`, 40, 58);
     }
     
-    // 右上角的坐標信息 - 只有非用戶上傳圖片才顯示坐標
+    // Top-right coordinates - only show for non-user uploaded images
     if (!currentLocation.isUserUpload) {
-        fill(100, 100, 100, 180);
+        fill(100, 100, 100, textOpacity * 0.7);
         textAlign(RIGHT, TOP);
         textSize(9);
         text(`${currentLocation.lat.toFixed(3)}, ${currentLocation.lng.toFixed(3)}`, 315, 42);
     }
     
-    // 左下角的指示器 - 根據圖片來源調整
+    // Bottom-left indicator - adjust based on image source
     if (currentLocation.isUserUpload) {
-        fill(255, 140, 0, 200); // 橙色表示用戶上傳
+        fill(255, 140, 0, textOpacity * 0.8); // Orange for user upload
         textAlign(LEFT, BOTTOM);
         textSize(8);
         text('📷 Your Photo', 40, 85);
     } else {
-        fill(0, 150, 0, 200); // 深綠色表示隨機生成
+        fill(0, 150, 0, textOpacity * 0.8); // Dark green for random
         textAlign(LEFT, BOTTOM);
         textSize(8);
         text('🎲 Random', 40, 85);
@@ -554,27 +603,27 @@ function drawFloatingButton(x, y, icon, tooltip) {
 function drawHelpPanel() {
     push();
     
-    // 多層毛玻璃效果背景
+    // Multi-layer glass effect background
     for(let i = 0; i < 5; i++) {
-        fill(255, 255, 255, 20 + i * 10); // 漸層不透明度
+        fill(255, 255, 255, 20 + i * 10);
         noStroke();
-        rect(width - 280, 25, 250 - i, 140 - i, 12 - i/2); // 增加高度
+        rect(width - 280, 25, 250 - i, 140 - i, 12 - i/2);
     }
     
-    // 主要背景框
-    fill(255, 255, 255, 180); // 增加不透明度
+    // Main background frame
+    fill(255, 255, 255, 180);
     stroke(255, 255, 255, 100);
     strokeWeight(1);
-    rect(width - 280, 25, 250, 140, 12); // 增加高度
+    rect(width - 280, 25, 250, 140, 12);
     
-    // Title - 深灰色
+    // Title - dark gray
     fill(60, 60, 60, 255);
     textAlign(LEFT, TOP);
     textSize(13);
     textStyle(BOLD);
     text('🎮 Controls', width - 270, 40);
     
-    // Instructions - 深灰色
+    // Instructions - dark gray
     fill(80, 80, 80, 200);
     textSize(10);
     textStyle(NORMAL);
@@ -599,27 +648,27 @@ function drawHelpPanel() {
 function drawNoImageryHint() {
     push();
     
-    // 多層毛玻璃效果背景
+    // Multi-layer glass effect background
     for(let i = 0; i < 5; i++) {
-        fill(255, 255, 255, 30 + i * 15); // 漸層不透明度
+        fill(255, 255, 255, 30 + i * 15);
         noStroke();
         rect(width/2 - 200, height/2 - 40, 400 - i*2, 80 - i, 15 - i/2);
     }
     
-    // 主要背景框
-    fill(255, 255, 255, 200); // 高不透明度
+    // Main background frame
+    fill(255, 255, 255, 200);
     stroke(255, 100, 100, 150);
     strokeWeight(2);
     rect(width/2 - 200, height/2 - 40, 400, 80, 15);
     
-    // 主要提示文字 - 深灰色
+    // Main hint text - dark gray
     fill(60, 60, 60, 255);
     textAlign(CENTER, CENTER);
     textSize(16);
     textStyle(BOLD);
     text('📍 No street view available for this location', width/2, height/2 - 10);
     
-    // 副標題 - 較淡的深灰色
+    // Subtitle - lighter dark gray
     textSize(12);
     textStyle(NORMAL);
     fill(80, 80, 80, 200);
@@ -661,7 +710,7 @@ function drawObject(obj) {
     push();
     translate(obj.x, obj.y);
     rotate(radians(obj.rotation));
-    scale(obj.scale * (obj.flipped ? -1 : 1), obj.scale); // 支援水平翻轉
+    scale(obj.scale * (obj.flipped ? -1 : 1), obj.scale);
     
     // Draw object based on type
     if (obj.hasAsset && obj.currentImage && obj.currentImage.width > 0) {
@@ -771,8 +820,8 @@ function createNewObject(type, x, y) {
         rotation: 0,
         scale: 1,
         hasAsset: hasAsset,
-        angleIndex: 1, // 從 1 開始 (front)
-        flipped: false, // 支援水平翻轉
+        angleIndex: 1, // Start from 1 (front)
+        flipped: false,
         zIndex: objects.length
     };
     
@@ -799,6 +848,9 @@ function selectTool(tool) {
     currentTool = tool;
     following = tool;
     selectedObject = null;
+    
+    // Show tool panel
+    showToolPanel();
     
     // Update UI
     document.querySelectorAll('.tool-btn').forEach(btn => {
@@ -852,6 +904,9 @@ function mousePressed() {
         document.querySelectorAll('.tool-btn').forEach(btn => {
             btn.classList.remove('active');
         });
+        
+        // Hide tool panel after placing
+        setTimeout(() => hideToolPanel(), 1000);
         
         console.log(`📍 Placed ${newObj.type}, total objects: ${objects.length}`);
     } else {
@@ -918,34 +973,6 @@ function keyPressed() {
     }
 }
 
-// === Object Controls ===
-function changeAngle(obj) {
-    if (!obj.hasAsset) return;
-    
-    obj.angleIndex = (obj.angleIndex + 1) % 3;
-    let config = assetConfig[obj.type];
-    let angleName = config.angles[obj.angleIndex];
-    
-    if (assetImages[obj.type][obj.styleNum][angleName]) {
-        obj.currentImage = assetImages[obj.type][obj.styleNum][angleName];
-        console.log(`🔄 Changed angle to ${angleName}`);
-    }
-}
-
-function flipObject(obj) {
-    obj.flipped = !obj.flipped;
-    console.log(`🔀 Object ${obj.flipped ? 'flipped horizontally' : 'restored'}`);
-}
-
-function changeLayer(obj) {
-    let index = objects.indexOf(obj);
-    if (index > -1) {
-        objects.splice(index, 1);
-        objects.push(obj);
-        console.log('📤 Moved to front');
-    }
-}
-
 // === Utility Functions ===
 function randomBG() {
     loadRandomStreetView();
@@ -961,26 +988,26 @@ function handleImageUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
     
-    // 檢查是否為圖片文件
+    // Check if it's an image file
     if (!file.type.startsWith('image/')) {
-        alert('請選擇一個有效的圖片文件！');
+        alert('Please select a valid image file!');
         return;
     }
     
     console.log(`📷 Loading user image: ${file.name}`);
     
-    // 創建 FileReader 來讀取文件
+    // Create FileReader to read file
     const reader = new FileReader();
     reader.onload = function(e) {
-        // 使用 p5.js 載入圖片
+        // Use p5.js to load image
         loadImage(e.target.result, 
             (img) => {
                 bgImage = img;
-                bgImage.filter(GRAY); // 應用灰階濾鏡
+                bgImage.filter(GRAY); // Apply grayscale filter
                 
-                // 設定用戶上傳圖片的位置信息
+                // Set user uploaded image location info
                 currentLocation = {
-                    name: file.name.replace(/\.[^/.]+$/, ""), // 移除副檔名
+                    name: file.name.replace(/\.[^/.]+$/, ""), // Remove extension
                     region: "User Upload",
                     description: "Your personal photo",
                     lat: 0,
@@ -992,19 +1019,19 @@ function handleImageUpload(event) {
             },
             (error) => {
                 console.error('❌ Failed to load user image:', error);
-                alert('載入圖片失敗，請嘗試其他圖片！');
+                alert('Failed to load image, please try another image!');
             }
         );
     };
     
     reader.onerror = function() {
         console.error('❌ FileReader error');
-        alert('讀取圖片文件失敗！');
+        alert('Failed to read image file!');
     };
     
     reader.readAsDataURL(file);
     
-    // 清空 input 值，這樣用戶可以重複上傳同一個文件
+    // Clear input value so user can upload same file again
     event.target.value = '';
 }
 
@@ -1023,8 +1050,22 @@ function clearAll() {
 }
 
 function saveImage() {
-    saveCanvas('moving-taipei-sandbox', 'png');
-    console.log('💾 Image saved as moving-taipei-sandbox.png');
+    // Set export state
+    isExporting = true;
+    
+    // Clear selection state to avoid selection indicators in exported image
+    let tempSelected = selectedObject;
+    selectedObject = null;
+    
+    // Wait one frame to ensure screen updates
+    setTimeout(() => {
+        saveCanvas('moving-taipei-sandbox', 'png');
+        console.log('💾 Image saved as moving-taipei-sandbox.png');
+        
+        // Restore state
+        isExporting = false;
+        selectedObject = tempSelected;
+    }, 50);
 }
 
 function windowResized() {
