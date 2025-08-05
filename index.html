@@ -8,6 +8,18 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+<!-- Mode Toggle (Top-right) -->
+<div class="mode-toggle">
+<button class="mode-btn" id="worldwideMode" onclick="switchMode('worldwide')">
+<i class="fas fa-globe"></i>
+<span>Worldwide</span>
+</button>
+<button class="mode-btn" id="diasporicMode" onclick="switchMode('diasporic')">
+<i class="fas fa-users"></i>
+<span>Diasporic</span>
+</button>
+</div>
+
 <!-- Tool Selection Panel -->
 <div id="ui" class="tool-panel">
 <button class="tool-btn" onclick="selectTool('vendor')" data-tool="vendor">
@@ -40,7 +52,7 @@
 <div class="action-buttons">
 <button class="action-btn randomize-btn" onclick="randomBG()">
 <i class="fas fa-dice"></i>
-<span>Randomize the City</span>
+<span id="randomizeText">Randomize the City</span>
 </button>
 <button class="action-btn upload-btn" onclick="triggerImageUpload()">
 <i class="fas fa-upload"></i>

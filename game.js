@@ -9,6 +9,7 @@ let bgImage = null;
 let assetImages = {};
 let currentLocation = null;
 let isExporting = false; // Export state
+let currentMode = 'worldwide'; // New: track current mode
 
 // Google Street View API Key
 const GOOGLE_STREET_VIEW_API_KEY = 'AIzaSyBsCQ7GYN2nUofnKdDonPHFHOWkBSwMQJg';
@@ -67,6 +68,15 @@ function changeLayer(obj) {
 
 // === Random Location Generator ===
 function generateRandomLocation() {
+    if (currentMode === 'diasporic') {
+        return generateDiasporicLocation();
+    } else {
+        return generateWorldwideLocation();
+    }
+}
+
+// Generate worldwide random location (original function)
+function generateWorldwideLocation() {
     // Define city areas more likely to have street view coverage
     const cityAreas = [
         // Asian major cities
@@ -107,7 +117,8 @@ function generateRandomLocation() {
             lng: parseFloat(lng.toFixed(6)),
             region: area.region,
             suggestedPlace: area.place,
-            description: `Near ${area.place}`
+            description: `Near ${area.place}`,
+            mode: 'worldwide'
         };
     } else {
         // Completely random location
@@ -148,9 +159,61 @@ function generateRandomLocation() {
             lng: parseFloat(lng.toFixed(6)),
             region: region.name,
             suggestedPlace: place,
-            description: `Random location in ${region.name}`
+            description: `Random location in ${region.name}`,
+            mode: 'worldwide'
         };
     }
+}
+
+// Generate diasporic Asian community location
+function generateDiasporicLocation() {
+    const diasporicAreas = [
+        // USA - California Asian communities
+        { lat: [34.095, 34.125], lng: [-118.125, -118.085], region: "Diasporic Asia", place: "San Gabriel Valley", country: "USA", description: "Asian American enclave in Los Angeles" },
+        { lat: [34.130, 34.150], lng: [-118.095, -118.065], region: "Diasporic Asia", place: "Arcadia", country: "USA", description: "Taiwanese and Chinese community" },
+        { lat: [34.050, 34.080], lng: [-118.260, -118.230], region: "Diasporic Asia", place: "Chinatown LA", country: "USA", description: "Historic Chinese district" },
+        { lat: [37.790, 37.800], lng: [-122.415, -122.400], region: "Diasporic Asia", place: "Chinatown SF", country: "USA", description: "San Francisco Chinatown" },
+        { lat: [37.563, 37.583], lng: [-122.325, -122.295], region: "Diasporic Asia", place: "Daly City", country: "USA", description: "Filipino American community" },
+        
+        // USA - Other major Asian communities
+        { lat: [40.715, 40.725], lng: [-73.995, -73.985], region: "Diasporic Asia", place: "Chinatown NYC", country: "USA", description: "Manhattan Chinatown" },
+        { lat: [40.760, 40.770], lng: [-73.830, -73.820], region: "Diasporic Asia", place: "Flushing", country: "USA", description: "Queens Asian community" },
+        { lat: [47.595, 47.605], lng: [-122.325, -122.315], region: "Diasporic Asia", place: "International District", country: "USA", description: "Seattle Asian community" },
+        
+        // Canada - Asian communities
+        { lat: [49.225, 49.245], lng: [-123.115, -123.095], region: "Diasporic Asia", place: "Richmond BC", country: "Canada", description: "Chinese Canadian community" },
+        { lat: [43.770, 43.790], lng: [-79.415, -79.395], region: "Diasporic Asia", place: "Markham", country: "Canada", description: "Chinese Canadian suburb" },
+        { lat: [43.645, 43.655], lng: [-79.395, -79.385], region: "Diasporic Asia", place: "East Chinatown Toronto", country: "Canada", description: "Toronto Chinese district" },
+        
+        // Australia - Asian communities
+        { lat: [-33.875, -33.865], lng: [151.105, 151.115], region: "Diasporic Asia", place: "Eastwood Sydney", country: "Australia", description: "Korean Australian community" },
+        { lat: [-37.815, -37.805], lng: [145.115, 145.125], region: "Diasporic Asia", place: "Box Hill Melbourne", country: "Australia", description: "Chinese Australian community" },
+        { lat: [-33.885, -33.875], lng: [151.215, 151.225], region: "Diasporic Asia", place: "Haymarket Sydney", country: "Australia", description: "Sydney Chinatown" },
+        
+        // UK - Asian communities
+        { lat: [51.515, 51.525], lng: [-0.135, -0.125], region: "Diasporic Asia", place: "Chinatown London", country: "UK", description: "London Chinatown" },
+        { lat: [53.475, 53.485], lng: [-2.240, -2.230], region: "Diasporic Asia", place: "Chinese Quarter Manchester", country: "UK", description: "Manchester Chinese area" },
+        
+        // Other significant Asian diasporic communities
+        { lat: [1.275, 1.285], lng: [103.840, 103.850], region: "Diasporic Asia", place: "Chinatown Singapore", country: "Singapore", description: "Heritage Chinese district" },
+        { lat: [14.590, 14.600], lng: [120.975, 120.985], region: "Diasporic Asia", place: "Binondo Manila", country: "Philippines", description: "World's oldest Chinatown" },
+        { lat: [13.745, 13.755], lng: [100.500, 100.510], region: "Diasporic Asia", place: "Chinatown Bangkok", country: "Thailand", description: "Yaowarat Chinese district" },
+        { lat: [3.145, 3.155], lng: [101.695, 101.705], region: "Diasporic Asia", place: "Chinatown KL", country: "Malaysia", description: "Petaling Street area" }
+    ];
+    
+    const area = diasporicAreas[Math.floor(Math.random() * diasporicAreas.length)];
+    const lat = Math.random() * (area.lat[1] - area.lat[0]) + area.lat[0];
+    const lng = Math.random() * (area.lng[1] - area.lng[0]) + area.lng[0];
+    
+    return {
+        lat: parseFloat(lat.toFixed(6)),
+        lng: parseFloat(lng.toFixed(6)),
+        region: area.region,
+        suggestedPlace: area.place,
+        description: area.description,
+        country: area.country,
+        mode: 'diasporic'
+    };
 }
 
 // === Geocoding Function ===
@@ -229,10 +292,37 @@ function preload() {
     }
 }
 
+// === Mode Switching ===
+function switchMode(mode) {
+    currentMode = mode;
+    
+    // Update UI
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.getElementById(mode + 'Mode').classList.add('active');
+    
+    // Update button text based on mode
+    const randomizeText = document.getElementById('randomizeText');
+    if (mode === 'diasporic') {
+        randomizeText.textContent = 'Explore Diaspora';
+    } else {
+        randomizeText.textContent = 'Randomize the City';
+    }
+    
+    // Load new location with current mode
+    loadRandomStreetView();
+    
+    console.log(`🔄 Switched to ${mode} mode`);
+}
+
 // === P5.JS SETUP ===
 function setup() {
     let canvas = createCanvas(windowWidth, windowHeight);
     canvas.parent(document.body);
+    
+    // Initialize with worldwide mode
+    document.getElementById('worldwideMode').classList.add('active');
     
     // Load random street view
     loadRandomStreetView();
@@ -240,7 +330,7 @@ function setup() {
     // Initialize tool panel auto-hide
     initToolPanelAutoHide();
     
-    console.log('🎮 Taipei Sandbox activated with full Street View support!');
+    console.log('🎮 Taipei Sandbox activated with dual-mode support!');
 }
 
 // === Tool Panel Auto-Hide System (Simplified) ===
@@ -494,14 +584,15 @@ function drawLocationInfo() {
     for(let i = 0; i < 5; i++) {
         fill(255, 255, 255, (25 + i * 8) * (isExporting ? 1.2 : 1));
         noStroke();
-        rect(25, 25, 300 - i, 70 - i, 15 - i/2);
+        rect(25, 25, 300 - i, 90 - i, 15 - i/2);
     }
     
-    // Main background frame
+    // Main background frame - adjust height for diasporic mode
+    let panelHeight = currentLocation.mode === 'diasporic' ? 90 : 70;
     fill(255, 255, 255, bgOpacity);
     stroke(255, 255, 255, 100);
     strokeWeight(1);
-    rect(25, 25, 300, 70, 15);
+    rect(25, 25, 300, panelHeight, 15);
     
     // Main location name - dark gray
     fill(60, 60, 60, textOpacity);
@@ -511,14 +602,29 @@ function drawLocationInfo() {
     let displayName = currentLocation.name || 'Loading location...';
     text(displayName, 40, 40);
     
-    // Region info - adjust display based on user upload
-    fill(80, 80, 80, textOpacity * 0.8);
-    textSize(11);
-    textStyle(NORMAL);
-    if (currentLocation.isUserUpload) {
-        text(`📸 ${currentLocation.description}`, 40, 58);
+    // Mode-specific display
+    if (currentLocation.mode === 'diasporic') {
+        // For diasporic mode, show description and country
+        fill(80, 80, 80, textOpacity * 0.8);
+        textSize(11);
+        textStyle(NORMAL);
+        text(`🌏 ${currentLocation.description}`, 40, 58);
+        
+        if (currentLocation.country) {
+            fill(100, 100, 100, textOpacity * 0.7);
+            textSize(10);
+            text(`📍 ${currentLocation.country}`, 40, 75);
+        }
     } else {
-        text(`📍 ${currentLocation.region || 'Unknown region'}`, 40, 58);
+        // Original worldwide mode display
+        fill(80, 80, 80, textOpacity * 0.8);
+        textSize(11);
+        textStyle(NORMAL);
+        if (currentLocation.isUserUpload) {
+            text(`📸 ${currentLocation.description}`, 40, 58);
+        } else {
+            text(`📍 ${currentLocation.region || 'Unknown region'}`, 40, 58);
+        }
     }
     
     // Top-right coordinates - only show for non-user uploaded images
@@ -529,17 +635,22 @@ function drawLocationInfo() {
         text(`${currentLocation.lat.toFixed(3)}, ${currentLocation.lng.toFixed(3)}`, 315, 42);
     }
     
-    // Bottom-left indicator - adjust based on image source
+    // Bottom-left indicator - adjust based on mode and image source
     if (currentLocation.isUserUpload) {
         fill(255, 140, 0, textOpacity * 0.8); // Orange for user upload
         textAlign(LEFT, BOTTOM);
         textSize(8);
-        text('📷 Your Photo', 40, 85);
-    } else {
-        fill(0, 150, 0, textOpacity * 0.8); // Dark green for random
+        text('📷 Your Photo', 40, panelHeight + 15);
+    } else if (currentLocation.mode === 'diasporic') {
+        fill(220, 20, 60, textOpacity * 0.8); // Deep pink for diasporic
         textAlign(LEFT, BOTTOM);
         textSize(8);
-        text('🎲 Random', 40, 85);
+        text('🌏 Diasporic', 40, panelHeight + 15);
+    } else {
+        fill(0, 150, 0, textOpacity * 0.8); // Dark green for worldwide random
+        textAlign(LEFT, BOTTOM);
+        textSize(8);
+        text('🎲 Worldwide', 40, panelHeight + 15);
     }
     
     pop();
@@ -668,11 +779,15 @@ function drawNoImageryHint() {
     textStyle(BOLD);
     text('📍 No street view available for this location', width/2, height/2 - 10);
     
-    // Subtitle - lighter dark gray
+    // Subtitle - mode-specific suggestion
     textSize(12);
     textStyle(NORMAL);
     fill(80, 80, 80, 200);
-    text('Click "Randomize the City" to try a different location!', width/2, height/2 + 12);
+    if (currentMode === 'diasporic') {
+        text('Click "Explore Diaspora" to find another Asian community!', width/2, height/2 + 12);
+    } else {
+        text('Click "Randomize the City" to try a different location!', width/2, height/2 + 12);
+    }
     
     pop();
 }
