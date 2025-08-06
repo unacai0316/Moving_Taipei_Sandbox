@@ -22,12 +22,12 @@ const assetConfig = {
         path: 'assets/vendor/'
     },
     balcony: {
-        count: 2,
+        count: 5,
         angles: ['L', 'front', 'R'],
         path: 'assets/balcony/'
     },
     rain: {
-        count: 3,
+        count: 9,
         angles: ['L', 'front', 'R'],
         path: 'assets/rain/'
     },
